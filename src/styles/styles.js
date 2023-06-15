@@ -63,6 +63,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 5,
     alignItems: 'center',
+    marginTop: 20,
   },
   addButtonText: {
     color: '#fff',
@@ -95,9 +96,92 @@ const styles = StyleSheet.create({
   tortasItemText: {
     fontSize: 16,
   },
+
+  // NewIngredientScreen styles
+  formContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  formTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  saveButton: {
+    backgroundColor: '#007bff',
+    flex: 1,
+    marginRight: 10,
+    borderRadius: 5,
+    paddingVertical: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#ccc',
+    flex: 1,
+    marginLeft: 10,
+    borderRadius: 5,
+    paddingVertical: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+
+
+  // Responsive styles
+  responsiveContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+  },
+  responsiveFormContainer: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  newStyle: {
+    color: 'red',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });
 
 export default styles;
+
+
+
+
+
 
 
 
