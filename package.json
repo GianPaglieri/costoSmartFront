@@ -5,8 +5,10 @@
   "dependencies": {
     "@expo/webpack-config": "^18.0.1",
     "@react-navigation/bottom-tabs": "^6.5.7",
-    "@react-navigation/native": "^6.0.6",
-    "@react-navigation/stack": "^6.0.11",
+    "@react-navigation/drawer": "^6.0.0",
+    "@react-navigation/native": "^6.1.7",
+    "@react-navigation/native-stack": "^6.9.13",
+    "@react-navigation/stack": "^6.0.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -15,7 +17,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-native": "0.71.8",
-    "react-native-reanimated": "~2.14.4",
+    "react-native-reanimated": "^2.3.0",
     "react-native-web": "~0.18.10",
     "react-scripts": "^5.0.0",
     "web-vitals": "^2.1.4"

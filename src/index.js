@@ -5,6 +5,7 @@ import App from './components/App';
 import reportWebVitals from './reportWebVitals';
 import { NavigationContainer } from '@react-navigation/native';
 
+
 ReactDOM.render(
   <React.StrictMode>
     <NavigationContainer>

@@ -18,6 +18,6 @@ COPY . .
 EXPOSE 19006
 
 # Comando para iniciar el servidor web
-CMD [ "npx","expo", "start" ]
+CMD [ "npx", "expo", "start", "--web" ]
 
 

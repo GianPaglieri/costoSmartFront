@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
 
+
+
 const styles = StyleSheet.create({
-  // HomeScreen styles
   homeContainer: {
     flex: 1,
     alignItems: 'center',
@@ -13,6 +14,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
   },
+  homeText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   homeButton: {
     backgroundColor: '#007bff',
     paddingVertical: 10,
@@ -21,6 +27,89 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   homeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  homePrice: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+  },
+  cardsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  card: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    marginHorizontal: 5,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 5,
+  },
+  cardValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  cardFooterText: {
+    fontSize: 14,
+  },
+  cardFooterTextRight: {
+    fontSize: 14,
+    textAlign: 'right',
+  },
+  cardContent: {
+    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardContentText: {
+    fontSize: 14,
+  },
+  pickerContainer: {
+    flex: 1,
+    marginRight: 10,
+    borderRadius: 5,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+  },
+  picker: {
+    height: 40,
+  },
+  venderButton: {
+    backgroundColor: '#007bff',
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  venderButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
@@ -140,7 +229,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   deleteButton: {
     backgroundColor: '#dc3545',
@@ -174,10 +263,76 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+
+  // Navigation styles
+  containerNav: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  sidebar: {
+    backgroundColor: '#333',
+    paddingTop: 40,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    zIndex: 1,
+  },
+  logo: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 20,
+  },
+  hiddenText: {
+    opacity: 0,
+  },
+  menuItems: {
+    marginTop: 20,
+  },
+  menuItem: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 10,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: 'white',
+    marginVertical: 20,
+    width: '80%',
+  },
+  hiddenSeparator: {
+    opacity: 0,
+  },
+  bottomMenu: {
+    paddingBottom: 20,
+  },
+  bottomMenuItem: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 10,
+  },
+  content: {
+    flex: 1,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+  },
+  expandButton: {
+    width: 36,
+    height: 36,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  expandIcon: {
+    fontSize: 20,
+  },
 });
 
 export default styles;
-
 
 
 

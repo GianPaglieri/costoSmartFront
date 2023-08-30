@@ -21,19 +21,19 @@ const TortasScreen = () => {
 
   const renderizarItem = ({ item }) => (
     <View style={styles.row}>
+      <Text style={styles.cell}>{item.ID_TORTA}</Text>
       <Text style={styles.cell}>{item.nombre_torta}</Text>
-      <Text style={styles.cell}>{item.id_ingrediente}</Text>
-      <Text style={styles.cell}>{item.cantidad_ingrediente}</Text>
-      <Text style={styles.cell}>{item.unidad_medida}</Text>
+      <Text style={styles.cell}>{item.descripcion_torta}</Text>
+      
     </View>
   );
 
   const renderizarEncabezado = () => (
     <View style={styles.row}>
+      <Text style={[styles.cell, styles.encabezado]}>ID Torta</Text>
       <Text style={[styles.cell, styles.encabezado]}>Nombre Torta</Text>
-      <Text style={[styles.cell, styles.encabezado]}>ID Ingrediente</Text>
-      <Text style={[styles.cell, styles.encabezado]}>Cantidad Ingrediente</Text>
-      <Text style={[styles.cell, styles.encabezado]}>Unidad de Medida</Text>
+      <Text style={[styles.cell, styles.encabezado]}>Descripcion Torta</Text>
+      
     </View>
   );
 
@@ -44,7 +44,7 @@ const TortasScreen = () => {
       <FlatList
         data={tortas}
         renderItem={renderizarItem}
-        keyExtractor={(item) => item.id_torta.toString()}
+        keyExtractor={(item) => item?.id_torta?.toString()}
       />
     </View>
   );
