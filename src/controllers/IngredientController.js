@@ -1,27 +1,55 @@
-const API_URL = 'http://localhost:3000';
+import axios from 'axios';
+import { sendAuthenticatedRequest } from './LoginController';
+import LoginController from './LoginController';
+
+
+const baseUrl = 'http://localhost:3000';
+
+const waitUntilTokenIsAvailable = async () => {
+  let token = LoginController.getToken();
+  while (!token) {
+      console.log('Esperando a que se obtenga un token de autenticación...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      token = LoginController.getToken();
+  }
+  return token;
+};
 
 export const fetchIngredientes = async () => {
   try {
-    const response = await fetch(`${API_URL}/ingredientes`);
-    const data = await response.json();
-    return data;
+    const token = await waitUntilTokenIsAvailable();
+    const { ingredientes } = await sendAuthenticatedRequest(`${baseUrl}/ingredientes`, token);
+    return ingredientes;
   } catch (error) {
-    console.error('Error al obtener los ingredientes:', error);
+    console.error('Error al obtener los ingredientes:', error.message);
+    throw error;
+  }
+};
+
+export const fetchIngredientesMenosStock = async () => {
+  try {
+    const token = await waitUntilTokenIsAvailable();
+    const response = await sendAuthenticatedRequest(`${baseUrl}/ingredientes/menosstock`, token);
+    return response;
+  } catch (error) {
+    console.error('Error al obtener los ingredientes con menos stock:', error.message);
     return [];
   }
 };
 
 export const agregarIngrediente = async (ingrediente) => {
   try {
-    const response = await fetch(`${API_URL}/ingredientes`, {
-      method: 'POST',
+    const token = await waitUntilTokenIsAvailable();
+    console.log('Token utilizado para agregar el ingrediente:', token); // Agregar este console log
+    console.log('Datos del ingrediente a agregar:', ingrediente); // Agregar este console log
+    const response = await axios.post(`${baseUrl}/ingredientes`, ingrediente, {
       headers: {
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(ingrediente),
+        'Authorization': `Bearer ${token}`,
+      }
     });
-    const data = await response.json();
-    return data;
+    console.log('Respuesta del servidor al agregar ingrediente:', response); // Agregar este console log
+    return response.data;
   } catch (error) {
     console.error('Error al agregar el ingrediente:', error);
     return { success: false };
@@ -30,15 +58,17 @@ export const agregarIngrediente = async (ingrediente) => {
 
 export const editarIngrediente = async (ingrediente) => {
   try {
-    const response = await fetch(`${API_URL}/ingredientes/${ingrediente.id}`, {
-      method: 'PUT',
+    const token = await waitUntilTokenIsAvailable();
+    console.log('Token utilizado para editar el ingrediente:', token); // Agregar este console log
+    console.log('Datos del ingrediente a editar:', ingrediente); // Agregar este console log
+    const response = await axios.put(`${baseUrl}/ingredientes/${ingrediente.id}`, ingrediente, {
       headers: {
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(ingrediente),
+        'Authorization': `Bearer ${token}`,
+      }
     });
-    const data = await response.json();
-    return data;
+    console.log('Respuesta del servidor al editar ingrediente:', response); // Agregar este console log
+    return response.data;
   } catch (error) {
     console.error('Error al editar el ingrediente:', error);
     return { success: false };
@@ -46,30 +76,25 @@ export const editarIngrediente = async (ingrediente) => {
 };
 
 export const borrarIngrediente = async (id) => {
-  console.log(`${API_URL}/ingredientes/${id}`);
   try {
-    console.log(`${API_URL}/ingredientes/${id}`);
-    const response = await fetch(`${API_URL}/ingredientes/${id}`, {
-      method: 'DELETE',
+    const token = await waitUntilTokenIsAvailable();
+    console.log('Token utilizado para borrar el ingrediente:', token); // Agregar este console log
+    console.log('ID del ingrediente a borrar:', id); // Agregar este console log
+    const response = await axios.delete(`${baseUrl}/ingredientes/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
     });
 
-    if (response.ok) {
+    if (response.status === 200) {
       console.log('Ingrediente eliminado exitosamente');
       return { success: true };
     } else {
-      const error = await response.json();
-      console.error('Error al eliminar el ingrediente:', error);
-      return { success: false, error };
+      console.error('Error al eliminar el ingrediente:', response.data);
+      return { success: false, error: response.data };
     }
   } catch (error) {
     console.error('Error en la solicitud de borrado del ingrediente:', error);
     return { success: false, error };
   }
 };
-
-
-
-
-
-
-

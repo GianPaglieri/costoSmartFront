@@ -1,13 +1,13 @@
 import { StyleSheet } from 'react-native';
 
 
-
 const styles = StyleSheet.create({
   homeContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
+    
   },
   homeTitle: {
     fontSize: 24,
@@ -39,27 +39,27 @@ const styles = StyleSheet.create({
   cardsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 30,
   },
   card: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-    marginHorizontal: 5,
+    borderRadius: 20,
+    padding: 30,
+    marginHorizontal: 50,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.50,
+    shadowRadius: 4.84,
     elevation: 5,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 25,
+    fontWeight: 'roboto',
     marginBottom: 10,
   },
   cardSubtitle: {
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'roboto',
   },
   cardFooter: {
     flexDirection: 'row',
@@ -93,20 +93,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   pickerContainer: {
+    width: '100%', 
     flex: 1,
     marginRight: 10,
     borderRadius: 5,
     borderColor: '#ccc',
-    borderWidth: 1,
+    
     paddingHorizontal: 10,
   },
   picker: {
+    width: '70%', 
     height: 40,
   },
   venderButton: {
     backgroundColor: '#007bff',
+    marginTop: 5,
     borderRadius: 5,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
   },
   venderButtonText: {
@@ -115,136 +118,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // IngredientListScreen styles
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  table: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    paddingVertical: 10,
-  },
-  cell: {
-    flex: 1,
-    paddingHorizontal: 10,
-  },
-  header: {
-    fontWeight: 'bold',
-  },
-  addButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-
-  // TortasScreen styles
-  tortasContainer: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  tortasTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  tortasList: {
-    flex: 1,
-    marginBottom: 20,
-  },
-  tortasItem: {
-    marginBottom: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-  },
-  tortasItemText: {
-    fontSize: 16,
-  },
-
-  // NewIngredientScreen styles
-  formContainer: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  formTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  input: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  saveButton: {
-    backgroundColor: '#007bff',
-    flex: 1,
-    marginRight: 10,
-    borderRadius: 5,
-    paddingVertical: 10,
-  },
-  cancelButton: {
-    backgroundColor: '#ccc',
-    flex: 1,
-    marginLeft: 10,
-    borderRadius: 5,
-    paddingVertical: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    textAlign: 'center'
-  },
-  deleteButton: {
-    backgroundColor: '#dc3545',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-
+ 
 
   // Responsive styles
   responsiveContainer: {
@@ -264,10 +138,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // Navigation styles
+ 
   containerNav: {
     flex: 1,
     flexDirection: 'row',
+    backgroundColor: '#4CAF50',
   },
   sidebar: {
     backgroundColor: '#333',
@@ -281,6 +156,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     marginBottom: 20,
+    fontFamily: 'your-chosen-font', // Cambia esto a la fuente que elijas
   },
   hiddenText: {
     opacity: 0,
