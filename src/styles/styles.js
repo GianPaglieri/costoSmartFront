@@ -1,0 +1,201 @@
+const styles = {
+  homeContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    minHeight: '100vh',
+  },
+  homeTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    marginBottom: '20px',
+  },
+  homeText: {
+    fontSize: '16px',
+    marginBottom: '20px',
+    textAlign: 'center',
+  },
+  homeButton: {
+    backgroundColor: '#007bff',
+    padding: '10px 20px',
+    borderRadius: '5px',
+    marginTop: '20px',
+    border: 'none',
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: '16px',
+    cursor: 'pointer',
+  },
+  homePrice: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    marginTop: '20px',
+  },
+  cardsContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '30px',
+    flexWrap: 'wrap',
+    gap: '20px',
+  },
+  card: {
+    flex: '1',
+    backgroundColor: '#fff',
+    borderRadius: '20px',
+    padding: '30px',
+    margin: '0 50px 20px 50px',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+  },
+  cardTitle: {
+    fontSize: '25px',
+    fontWeight: 'bold',
+    marginBottom: '10px',
+  },
+  cardSubtitle: {
+    fontSize: '14px',
+    opacity: 0.7,
+    marginBottom: '5px',
+  },
+  cardValue: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+  },
+  cardFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginTop: '10px',
+  },
+  cardFooterText: {
+    fontSize: '14px',
+  },
+  cardFooterTextRight: {
+    fontSize: '14px',
+    textAlign: 'right',
+  },
+  cardContent: {
+    marginTop: '20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardContentText: {
+    fontSize: '14px',
+  },
+  pickerContainer: {
+    width: '100%',
+    marginRight: '10px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+    padding: '10px',
+  },
+  picker: {
+    width: '70%',
+    height: '40px',
+  },
+  venderButton: {
+    backgroundColor: '#007bff',
+    marginTop: '5px',
+    borderRadius: '5px',
+    padding: '12px 20px',
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: '16px',
+    border: 'none',
+    cursor: 'pointer',
+  },
+  venderButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: '16px',
+  },
+  responsiveContainer: {
+    padding: '20px',
+    backgroundColor: '#fff',
+    display: 'flex',
+    justifyContent: 'center',
+  },
+  responsiveFormContainer: {
+    width: '100%',
+    maxWidth: '400px',
+    margin: '0 auto',
+  },
+  newStyle: {
+    color: 'red',
+    fontSize: '18px',
+    fontWeight: 'bold',
+  },
+  containerNav: {
+    display: 'flex',
+    flexDirection: 'row',
+    backgroundColor: '#4CAF50',
+  },
+  sidebar: {
+    backgroundColor: '#333',
+    paddingTop: '40px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  logo: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: '20px',
+    fontFamily: 'Roboto, sans-serif',
+  },
+  hiddenText: {
+    opacity: 0,
+  },
+  menuItems: {
+    marginTop: '20px',
+  },
+  menuItem: {
+    fontSize: '16px',
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: '10px',
+  },
+  separator: {
+    height: '1px',
+    backgroundColor: 'white',
+    margin: '20px auto',
+    width: '80%',
+  },
+  hiddenSeparator: {
+    opacity: 0,
+  },
+  bottomMenu: {
+    paddingBottom: '20px',
+  },
+  bottomMenuItem: {
+    fontSize: '16px',
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: '10px',
+  },
+  content: {
+    backgroundColor: '#fff',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    flex: 1,
+  },
+  expandButton: {
+    width: '36px',
+    height: '36px',
+    backgroundColor: '#fff',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '20px',
+  },
+  expandIcon: {
+    fontSize: '20px',
+  },
+};
+
+export default styles;
