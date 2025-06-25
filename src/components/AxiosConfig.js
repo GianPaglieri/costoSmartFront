@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isTokenValid } from '../utils/auth';
 
 const instance = axios.create({
   baseURL: 'http://149.50.131.253/api'
@@ -6,16 +7,15 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token'); // Suponiendo que has guardado el token en LocalStorage
-    if (token) {
+    const token = localStorage.getItem('token');
+    if (token && isTokenValid(token)) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('Token agregado al encabezado de autorización:', token); // Agrega este console.log para verificar que el token se esté agregando correctamente
+    } else if (token && !isTokenValid(token)) {
+      localStorage.removeItem('token');
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default instance;
