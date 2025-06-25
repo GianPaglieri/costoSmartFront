@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { isTokenValid } from '../utils/auth';
 import { 
   TextField, 
   Button, 
@@ -55,10 +56,13 @@ const LoginScreen = ({ setToken }) => {
   const handleLogin = async () => {
     try {
       const token = await LoginController.loginUser(email, contrasena);
-      localStorage.setItem('token', token);
-      setToken(token); 
-      navigate('/');
-      console.log('Token received:', token);
+      if (isTokenValid(token)) {
+        localStorage.setItem('token', token);
+        setToken(token);
+        navigate('/');
+      } else {
+        throw new Error('Token inválido');
+      }
     } catch (error) {
       console.error('Error completo:', error);
       setError(error.message);

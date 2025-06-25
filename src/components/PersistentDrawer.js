@@ -26,6 +26,7 @@ import IngredientListScreen from '../views/IngredientListScreen';
 import TortasScreen from '../views/TortasScreen';
 import RecetaScreen from '../views/Recetas2';
 import VentasScreen from '../views/VentasScreen';
+import { isTokenValid } from '../utils/auth';
 
 const drawerWidth = 240;
 const collapsedWidth = 64;
@@ -101,13 +102,21 @@ export default function MiniDrawer() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [open, setOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const storedToken = localStorage.getItem('token');
+    return storedToken && isTokenValid(storedToken);
+  });
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token);
+    if (token && isTokenValid(token)) {
+      setIsAuthenticated(true);
+    } else {
+      localStorage.removeItem('token');
+      setIsAuthenticated(false);
+    }
   }, []);
 
   const handleDrawerToggle = () => {
