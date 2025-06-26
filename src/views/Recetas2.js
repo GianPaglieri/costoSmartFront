@@ -23,14 +23,16 @@ import {
   ThemeProvider,
   createTheme,
   Box,
-  IconButton
+  IconButton,
+  InputAdornment
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
   Close as CloseIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import {
   fetchRecetas,
@@ -72,6 +74,7 @@ const RecetasComponent = () => {
   const [editedIngredienteIndex, setEditedIngredienteIndex] = useState(null);
   const [alertMessage, setAlertMessage] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [filtro, setFiltro] = useState('');
 
   // 1) Cargar recetas, ingredientes y precios al montar
   useEffect(() => {
@@ -81,7 +84,10 @@ const RecetasComponent = () => {
         setRecetas(recetasData || []);
 
         const ingredientesData = await fetchIngredientes();
-        setIngredientes(ingredientesData || []);
+        const sortedIng = (ingredientesData || []).sort((a, b) =>
+          a.nombre.localeCompare(b.nombre)
+        );
+        setIngredientes(sortedIng);
 
         const preciosData = await fetchListaPrecios();
         setPrecios(preciosData || []);
@@ -317,7 +323,29 @@ const RecetasComponent = () => {
             </Snackbar>
           )}
 
-          {recetas.map((receta, index) => (
+          <Grid item xs={12} sx={{ mb: 2 }}>
+            <TextField
+              label="Buscar receta"
+              variant="outlined"
+              fullWidth
+              size="small"
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          {recetas
+            .filter((r) =>
+              r.nombre_torta.toLowerCase().includes(filtro.toLowerCase())
+            )
+            .map((receta, index) => (
             <Grid item key={`${receta.ID_TORTA}-${index}`} xs={12} sm={6} md={4} lg={3}>
               <Card
                 sx={{
