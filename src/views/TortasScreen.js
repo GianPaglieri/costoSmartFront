@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Table,
   TableBody,
   TableCell,
@@ -21,7 +21,9 @@ import {
   createTheme,
   Box,
   Typography,
-  Avatar
+  Avatar,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -62,6 +64,8 @@ const TortasScreen = () => {
   });
   const [filtro, setFiltro] = useState('');
   const [error, setError] = useState('');
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   // 1) Cargar lista de tortas al montar la pantalla
   useEffect(() => {
@@ -129,6 +133,10 @@ const TortasScreen = () => {
     navigate('/tortas', { replace: true, state: {} });
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
   const handleAddTorta = async () => {
     if (!newTorta.nombre_torta || !newTorta.descripcion_torta) {
       setError('Por favor complete todos los campos.');
@@ -137,11 +145,13 @@ const TortasScreen = () => {
     try {
       await agregarTorta(newTorta);
       await obtenerTortas();
-      alert('Torta agregada exitosamente');
+      setAlertMessage({ type: 'success', message: 'Torta agregada exitosamente' });
+      setSnackbarOpen(true);
       handleCloseModal();
     } catch (err) {
       console.error('Error al agregar la torta:', err);
-      setError('Error al agregar la torta');
+      setAlertMessage({ type: 'error', message: 'Error al agregar la torta' });
+      setSnackbarOpen(true);
     }
   };
 
@@ -153,11 +163,13 @@ const TortasScreen = () => {
     try {
       await editarTorta(newTorta);
       await obtenerTortas();
-      alert('Torta editada exitosamente');
+      setAlertMessage({ type: 'success', message: 'Torta editada exitosamente' });
+      setSnackbarOpen(true);
       handleCloseModal();
     } catch (err) {
       console.error('Error al editar la torta:', err);
-      setError('Error al editar la torta');
+      setAlertMessage({ type: 'error', message: 'Error al editar la torta' });
+      setSnackbarOpen(true);
     }
   };
 
@@ -165,9 +177,12 @@ const TortasScreen = () => {
     try {
       await borrarTorta(id);
       await obtenerTortas();
-      alert('Torta eliminada exitosamente');
+      setAlertMessage({ type: 'success', message: 'Torta eliminada exitosamente' });
+      setSnackbarOpen(true);
     } catch (err) {
       console.error('Error al eliminar la torta:', err);
+      setAlertMessage({ type: 'error', message: 'Error al eliminar la torta' });
+      setSnackbarOpen(true);
     }
   };
 
@@ -427,6 +442,19 @@ const TortasScreen = () => {
             </Box>
           </DialogActions>
         </Dialog>
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={6000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{
+            vertical: isMobile ? 'bottom' : 'top',
+            horizontal: 'center'
+          }}
+        >
+          <Alert onClose={handleSnackbarClose} severity={alertMessage?.type} sx={{ width: '100%' }}>
+            {alertMessage?.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   );

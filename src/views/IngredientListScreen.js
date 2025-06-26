@@ -24,7 +24,9 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { 
   Search as SearchIcon, 
@@ -71,6 +73,8 @@ const IngredientList = () => {
   const [deletedIngredienteId, setDeletedIngredienteId] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [filtro, setFiltro] = useState('');
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   useEffect(() => {
     obtenerIngredientes();
@@ -111,6 +115,10 @@ const IngredientList = () => {
     setAddModalOpen(false);
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
   const handleAddIngrediente = async () => {
     // Validar los campos del formulario antes de enviarlos al servidor
     if (!validateForm(newIngrediente)) {
@@ -121,10 +129,13 @@ const IngredientList = () => {
       await agregarIngrediente(newIngrediente);
       const updatedIngredientes = await fetchIngredientes();
       setIngredientes(updatedIngredientes);
-      alert('Ingrediente agregado exitosamente');
+      setAlertMessage({ type: 'success', message: 'Ingrediente agregado exitosamente' });
+      setSnackbarOpen(true);
       handleCloseAddModal();
     } catch (error) {
       console.error('Error al agregar el ingrediente:', error);
+      setAlertMessage({ type: 'error', message: 'Error al agregar el ingrediente' });
+      setSnackbarOpen(true);
     }
   };
 
@@ -138,9 +149,12 @@ const IngredientList = () => {
       await editarIngrediente(editedIngrediente);
       const data = await fetchIngredientes();
       setIngredientes(data);
-      alert('Ingrediente editado exitosamente');
+      setAlertMessage({ type: 'success', message: 'Ingrediente editado exitosamente' });
+      setSnackbarOpen(true);
     } catch (error) {
       console.error('Error al editar el ingrediente:', error);
+      setAlertMessage({ type: 'error', message: 'Error al editar el ingrediente' });
+      setSnackbarOpen(true);
     }
 
     handleCloseEditModal();
@@ -163,12 +177,17 @@ const IngredientList = () => {
       if (response.success) {
         const updatedIngredientes = await fetchIngredientes();
         setIngredientes(updatedIngredientes);
-        alert('Ingrediente eliminado exitosamente');
+        setAlertMessage({ type: 'success', message: 'Ingrediente eliminado exitosamente' });
+        setSnackbarOpen(true);
       } else {
         console.error('Error al eliminar el ingrediente:', response.error);
+        setAlertMessage({ type: 'error', message: 'Error al eliminar el ingrediente' });
+        setSnackbarOpen(true);
       }
     } catch (error) {
       console.error('Error al eliminar el ingrediente:', error);
+      setAlertMessage({ type: 'error', message: 'Error al eliminar el ingrediente' });
+      setSnackbarOpen(true);
     }
 
     setShowConfirmation(false);
@@ -191,7 +210,8 @@ const IngredientList = () => {
         isNaN(ingrediente.tamano_Paquete) || ingrediente.tamano_Paquete <= 0 ||
         isNaN(ingrediente.costo) || ingrediente.costo <= 0 ||
         isNaN(ingrediente.CantidadStock) || ingrediente.CantidadStock < 0) {
-      alert('Por favor, complete todos los campos correctamente.');
+      setAlertMessage({ type: 'error', message: 'Por favor, complete todos los campos correctamente.' });
+      setSnackbarOpen(true);
       return false;
     }
 
@@ -525,6 +545,19 @@ const IngredientList = () => {
             </Button>
           </DialogActions>
         </Dialog>
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={6000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{
+            vertical: isMobile ? 'bottom' : 'top',
+            horizontal: 'center'
+          }}
+        >
+          <Alert onClose={handleSnackbarClose} severity={alertMessage?.type} sx={{ width: '100%' }}>
+            {alertMessage?.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   );
