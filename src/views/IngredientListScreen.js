@@ -20,7 +20,11 @@ import {
   useMediaQuery,
   ThemeProvider,
   createTheme,
-  Box
+  Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { 
   Search as SearchIcon, 
@@ -117,6 +121,7 @@ const IngredientList = () => {
       await agregarIngrediente(newIngrediente);
       const updatedIngredientes = await fetchIngredientes();
       setIngredientes(updatedIngredientes);
+      alert('Ingrediente agregado exitosamente');
       handleCloseAddModal();
     } catch (error) {
       console.error('Error al agregar el ingrediente:', error);
@@ -133,6 +138,7 @@ const IngredientList = () => {
       await editarIngrediente(editedIngrediente);
       const data = await fetchIngredientes();
       setIngredientes(data);
+      alert('Ingrediente editado exitosamente');
     } catch (error) {
       console.error('Error al editar el ingrediente:', error);
     }
@@ -157,6 +163,7 @@ const IngredientList = () => {
       if (response.success) {
         const updatedIngredientes = await fetchIngredientes();
         setIngredientes(updatedIngredientes);
+        alert('Ingrediente eliminado exitosamente');
       } else {
         console.error('Error al eliminar el ingrediente:', response.error);
       }
@@ -313,14 +320,26 @@ const IngredientList = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Unidad de medida"
-                  fullWidth
-                  value={editedIngrediente.unidad_Medida}
-                  onChange={(e) => setEditedIngrediente({...editedIngrediente, unidad_Medida: e.target.value})}
-                  margin="normal"
-                  size={isMobile ? 'small' : 'medium'}
-                />
+                <FormControl fullWidth margin="normal" size={isMobile ? 'small' : 'medium'}>
+                  <InputLabel id="unidad-edit-label">Unidad de medida</InputLabel>
+                  <Select
+                    labelId="unidad-edit-label"
+                    label="Unidad de medida"
+                    value={editedIngrediente.unidad_Medida}
+                    onChange={(e) =>
+                      setEditedIngrediente({
+                        ...editedIngrediente,
+                        unidad_Medida: e.target.value,
+                      })
+                    }
+                  >
+                    <MenuItem value="unidad">Unidad</MenuItem>
+                    <MenuItem value="gramos">Gramos</MenuItem>
+                    <MenuItem value="kilogramos">Kilogramos</MenuItem>
+                    <MenuItem value="litros">Litros</MenuItem>
+                    <MenuItem value="mililitros">Mililitros</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -394,15 +413,27 @@ const IngredientList = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Unidad de medida"
-                  fullWidth
-                  value={newIngrediente.unidad_Medida}
-                  onChange={(e) => setNewIngrediente({...newIngrediente, unidad_Medida: e.target.value})}
-                  margin="normal"
-                  size={isMobile ? 'small' : 'medium'}
-                  required
-                />
+                <FormControl fullWidth margin="normal" size={isMobile ? 'small' : 'medium'}>
+                  <InputLabel id="unidad-add-label">Unidad de medida</InputLabel>
+                  <Select
+                    labelId="unidad-add-label"
+                    label="Unidad de medida"
+                    value={newIngrediente.unidad_Medida}
+                    onChange={(e) =>
+                      setNewIngrediente({
+                        ...newIngrediente,
+                        unidad_Medida: e.target.value,
+                      })
+                    }
+                    required
+                  >
+                    <MenuItem value="unidad">Unidad</MenuItem>
+                    <MenuItem value="gramos">Gramos</MenuItem>
+                    <MenuItem value="kilogramos">Kilogramos</MenuItem>
+                    <MenuItem value="litros">Litros</MenuItem>
+                    <MenuItem value="mililitros">Mililitros</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField

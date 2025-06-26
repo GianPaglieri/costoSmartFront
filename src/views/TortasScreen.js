@@ -137,6 +137,7 @@ const TortasScreen = () => {
     try {
       await agregarTorta(newTorta);
       await obtenerTortas();
+      alert('Torta agregada exitosamente');
       handleCloseModal();
     } catch (err) {
       console.error('Error al agregar la torta:', err);
@@ -152,6 +153,7 @@ const TortasScreen = () => {
     try {
       await editarTorta(newTorta);
       await obtenerTortas();
+      alert('Torta editada exitosamente');
       handleCloseModal();
     } catch (err) {
       console.error('Error al editar la torta:', err);
@@ -163,6 +165,7 @@ const TortasScreen = () => {
     try {
       await borrarTorta(id);
       await obtenerTortas();
+      alert('Torta eliminada exitosamente');
     } catch (err) {
       console.error('Error al eliminar la torta:', err);
     }

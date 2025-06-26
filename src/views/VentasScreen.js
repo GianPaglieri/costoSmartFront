@@ -9,8 +9,9 @@ import {
   Paper,
   TextField,
   InputAdornment,
+  Button,
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Search as SearchIcon, SaveAlt as SaveAltIcon } from '@mui/icons-material';
 import { obtenerVentas } from '../controllers/VentaController';
 
 const VentasScreen = () => {
@@ -41,24 +42,47 @@ const VentasScreen = () => {
     );
   };
 
+  const handleExport = () => {
+    const headers = ['Nombre Torta', 'Precio', 'Fecha de Venta'];
+    const rows = ventas.map((v) => [v.Torta.nombre_torta, v.precio_torta, v.fecha_venta]);
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'ventas.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', marginBottom: 20 }}>
-      <TextField
-        label="Buscar"
-        variant="outlined"
-        fullWidth
-        margin="normal"
-        size="small"
-        value={filtro}
-        onChange={(e) => setFiltro(e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-      />
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+        <TextField
+          label="Buscar"
+          variant="outlined"
+          fullWidth
+          size="small"
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleExport}
+          startIcon={<SaveAltIcon />}
+        >
+          Exportar
+        </Button>
+      </div>
       <TableContainer component={Paper} elevation={3} style={{ border: '1px solid #ddd' }}>
         <Table>
           <TableHead>
