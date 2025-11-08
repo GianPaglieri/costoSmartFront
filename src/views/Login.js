@@ -1,234 +1,228 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { isTokenValid } from '../utils/auth';
-import { 
-  TextField, 
-  Button, 
-  Typography, 
-  Box, 
-  Paper, 
-  Container,
+import {
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Paper,
   useMediaQuery,
-  ThemeProvider,
-  createTheme
+  Alert,
+  Divider,
+  Stack,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import LoginController from '../controllers/LoginController';
 
-// Crear tema responsive
-const theme = createTheme({
-  breakpoints: {
-    values: {
-      xs: 0,
-      sm: 600,
-      md: 900,
-      lg: 1200,
-      xl: 1536,
-    },
-  },
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    background: {
-      default: '#ffffff', // Fondo blanco por defecto
-    },
-  },
-});
+const backgroundGradient = 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #312e81 100%)';
+const cardBackground =
+  'linear-gradient(180deg, rgba(248,250,252,0.98) 0%, rgba(241,245,249,0.98) 100%)';
 
 const LoginScreen = ({ setToken }) => {
+  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [email, setEmail] = useState('');
   const [contrasena, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.log("Componente LoginScreen montado!");
-    const handleGlobalError = (e) => {
-      console.error('Error global capturado:', e.error);
-    };
-    window.addEventListener('error', handleGlobalError);
-    return () => {
-      window.removeEventListener('error', handleGlobalError);
-    };
-  }, []);
-
   const handleLogin = async () => {
     try {
-      const token = await LoginController.loginUser(email, contrasena);
-      if (isTokenValid(token)) {
-        localStorage.setItem('token', token);
-        setToken(token);
-        navigate('/');
-      } else {
-        throw new Error('Token inválido');
+      setError('');
+      const trimmedEmail = email.trim();
+      const trimmedPassword = contrasena.trim();
+
+      if (!trimmedEmail || !trimmedPassword) {
+        setError('Ingresa tu email y contrasena.');
+        return;
       }
-    } catch (error) {
-      console.error('Error completo:', error);
-      setError(error.message);
+
+      const { token, user } = await LoginController.loginUser(trimmedEmail, trimmedPassword);
+      if (!isTokenValid(token)) {
+        throw new Error('Token invalido');
+      }
+
+      localStorage.setItem('token', token);
+      if (user) {
+        try {
+          localStorage.setItem('userInfo', JSON.stringify(user));
+        } catch (_) {}
+      }
+      setToken(token);
+      try {
+        const evt = new CustomEvent('auth:token-changed', { detail: { token } });
+        window.dispatchEvent(evt);
+      } catch (_) {}
+      navigate('/');
+    } catch (err) {
+      console.error('Error completo:', err);
+      setError(
+        err?.response?.data?.error ||
+          err?.message ||
+          'No se pudo iniciar sesion'
+      );
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
       handleLogin();
     }
   };
 
   return (
-    <ThemeProvider theme={theme}>
       <Box
         sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
           minHeight: '100vh',
-          width: '100vw',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          backgroundColor: '#ffffff', // Fondo blanco sólido
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundImage: backgroundGradient,
+          px: 2,
+          py: 4,
         }}
       >
-        <Container 
-          component="main" 
-          maxWidth="xs"
+        <Paper
+          elevation={0}
           sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: isMobile ? 2 : 3,
-            backgroundColor: 'transparent', // Contenedor transparente
+            width: '100%',
+            maxWidth: 440,
+            borderRadius: 4,
+            p: isMobile ? 3 : 4,
+            backgroundImage: cardBackground,
+            boxShadow: '0 35px 80px rgba(15,23,42,0.55)',
+            border: '1px solid rgba(148, 163, 184, 0.25)',
           }}
         >
-          <Paper
-            elevation={3}
+          <Box
             sx={{
+              mb: 3.5,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              p: isMobile ? 3 : 4,
-              width: '100%',
-              borderRadius: 2,
-              backgroundColor: '#ffffff', // Fondo blanco para el Paper
+              textAlign: 'center',
+              gap: 0.75,
             }}
           >
-            <Typography 
-              component="h1" 
+            <Box
+              component="img"
+              src="/logo.png"
+              alt="CostoSmart"
+              sx={{
+                width: isMobile ? 110 : 150,
+                height: isMobile ? 110 : 150,
+                objectFit: 'contain',
+                display: 'block',
+                mb: 0.5,
+              }}
+            />
+            <Typography
               variant={isMobile ? 'h5' : 'h4'}
-              sx={{ 
-                mb: 3,
-                fontWeight: 'bold',
-                color: 'primary.main'
+              sx={{
+                fontWeight: 600,
+                color: '#0f172a',
+                letterSpacing: 0,
+                fontFamily: '"Montserrat","Inter","Roboto","Helvetica","Arial",sans-serif',
+                textTransform: 'none',
               }}
             >
-              Inicio de Sesión
+              CostoSmart
             </Typography>
-            
-            {error && (
-              <Typography 
-                color="error" 
-                sx={{ 
-                  mb: 2,
-                  textAlign: 'center',
-                  width: '100%'
-                }}
-              >
-                {error}
-              </Typography>
-            )}
-            
+            <Typography variant="body2" sx={{ color: '#475569', maxWidth: 320 }}>
+              Gestiona tus recetas y costos desde un solo lugar.
+            </Typography>
+            <Divider sx={{ width: 64, borderColor: 'rgba(15,23,42,0.15)', my: 1 }} />
+            <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 600, color: '#0f172a' }}>
+              Inicio de Sesion
+            </Typography>
+          </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Stack spacing={2}>
             <TextField
               variant="outlined"
-              margin="normal"
               required
               fullWidth
               id="email"
-              label="Correo electrónico"
+              label="Correo electronico"
               name="email"
               autoComplete="email"
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               size={isMobile ? 'small' : 'medium'}
-              sx={{ mb: 2 }}
             />
-            
+
             <TextField
               variant="outlined"
-              margin="normal"
               required
               fullWidth
               name="password"
-              label="Contraseña"
+              label="Contrasena"
               type="password"
               id="password"
               autoComplete="current-password"
               value={contrasena}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               size={isMobile ? 'small' : 'medium'}
-              sx={{ mb: 3 }}
             />
-            
+          </Stack>
+
+          <Button
+            fullWidth
+            variant="contained"
+            color="primary"
+            onClick={handleLogin}
+            size={isMobile ? 'medium' : 'large'}
+            sx={{
+              mt: 3,
+              py: isMobile ? 1 : 1.4,
+              fontSize: isMobile ? '0.95rem' : '1rem',
+              borderRadius: 2,
+              boxShadow: '0 20px 35px rgba(37,99,235,0.25)',
+            }}
+          >
+            Iniciar Sesion
+          </Button>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Stack spacing={1.5}>
             <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={handleLogin}
-              size={isMobile ? 'medium' : 'large'}
+              component={Link}
+              to="/forgot-password"
+              variant="text"
               sx={{
-                mb: 2,
-                py: isMobile ? 1 : 1.5,
-                fontSize: isMobile ? '0.875rem' : '1rem'
+                textTransform: 'none',
+                color: '#1d4ed8',
+                fontWeight: 600,
               }}
             >
-              Iniciar Sesión
+              Olvidaste tu contrasena?
             </Button>
-            
-            <Box 
+
+            <Button
+              component={Link}
+              to="/register"
+              variant="outlined"
               sx={{
-                width: '100%',
-                mt: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
+                textTransform: 'none',
+                borderRadius: 2,
+                borderColor: 'rgba(37,99,235,0.35)',
               }}
             >
-              <Link 
-                to="/forgot-password" 
-                style={{ 
-                  textDecoration: 'none',
-                  marginBottom: '10px'
-                }}
-              >
-                <Typography 
-                  variant="body2" 
-                  color="primary"
-                  sx={{ '&:hover': { textDecoration: 'underline' } }}
-                >
-                  ¿Olvidaste tu contraseña?
-                </Typography>
-              </Link>
-              
-              <Link 
-                to="/register" 
-                style={{ textDecoration: 'none' }}
-              >
-                <Typography 
-                  variant="body2" 
-                  color="primary"
-                  sx={{ '&:hover': { textDecoration: 'underline' } }}
-                >
-                  ¿No tienes cuenta? Regístrate aquí
-                </Typography>
-              </Link>
-            </Box>
-          </Paper>
-        </Container>
+              Crear cuenta nueva
+            </Button>
+          </Stack>
+        </Paper>
       </Box>
-    </ThemeProvider>
   );
 };
 

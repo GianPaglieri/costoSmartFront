@@ -1,11 +1,9 @@
-import axios from 'axios';
+import api from '../components/AxiosConfig';
 import { LoginController, sendAuthenticatedRequest } from './LoginController';
-
-const baseUrl = 'http://149.50.131.253/api';
 
 export const obtenerVentas = async () => {
     try {
-        const ventas = await sendAuthenticatedRequest(`${baseUrl}/ventas`);
+        const ventas = await sendAuthenticatedRequest(`/ventas`);
         return ventas;
     } catch (error) {
         console.error('Error al obtener las ventas:', error.message);
@@ -16,8 +14,8 @@ export const obtenerVentas = async () => {
 export const registrarVenta = async (idTorta, id_usuario) => {
   try {
     const token = LoginController.getToken();
-    const response = await axios.post(
-      `${baseUrl}/ventas`,
+    const response = await api.post(
+      `/ventas`,
       { id_torta: idTorta, id_usuario },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -37,7 +35,7 @@ export const registrarVenta = async (idTorta, id_usuario) => {
 
 export const obtenerCantidadVentas = async () => {
   try {
-      const response = await sendAuthenticatedRequest(`${baseUrl}/ventas/cantidad`);
+      const response = await sendAuthenticatedRequest(`/ventas/cantidad`);
       return response;
   } catch (error) {
       console.error('Error al obtener la cantidad de ventas:', error);
@@ -47,7 +45,7 @@ export const obtenerCantidadVentas = async () => {
 
 export const obtenerCantidadVentasSemanales = async () => {
   try {
-      const response = await sendAuthenticatedRequest(`${baseUrl}/ventas/cantidad-semana`);
+      const response = await sendAuthenticatedRequest(`/ventas/cantidad-semana`);
       return response;
   } catch (error) {
       console.error('Error al obtener la cantidad de ventas semanales:', error);
@@ -57,7 +55,7 @@ export const obtenerCantidadVentasSemanales = async () => {
 
 export const obtenerPorcentajeVentas = async () => {
   try {
-      const response = await sendAuthenticatedRequest(`${baseUrl}/ventas/porcentaje-ventas`);
+      const response = await sendAuthenticatedRequest(`/ventas/porcentaje-ventas`);
       return response;
   } catch (error) {
       console.error('Error al obtener el porcentaje de ventas:', error);
@@ -67,7 +65,7 @@ export const obtenerPorcentajeVentas = async () => {
 
 export const obtenerGanancias = async () => {
   try {
-      const response = await sendAuthenticatedRequest(`${baseUrl}/ventas/ganancias`);
+      const response = await sendAuthenticatedRequest(`/ventas/ganancias`);
       return response;
   } catch (error) {
       console.error('Error al obtener ganancias:', error);

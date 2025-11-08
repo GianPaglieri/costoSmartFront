@@ -1,4 +1,3 @@
-// src/views/ForgotPassword.jsx
 import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
@@ -7,21 +6,21 @@ import {
   Typography,
   Box,
   Paper,
-  Container,
   Snackbar,
   Alert,
   useMediaQuery,
-  ThemeProvider,
-  createTheme
+  Stack,
+  Divider,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import ForgotPasswordController from '../controllers/ForgotPasswordController';
 
-const theme = createTheme({
-  breakpoints: { values: { xs:0, sm:600, md:900, lg:1200, xl:1536 } },
-  palette: { primary: { main: '#1976d2' }, background: { default: '#fff' } }
-});
+const backgroundGradient = 'linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #312e81 100%)';
+const cardBackground =
+  'linear-gradient(180deg, rgba(248,250,252,0.98) 0%, rgba(241,245,249,0.98) 100%)';
 
 export default function ForgotPassword() {
+  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState({ type: '', message: '' });
@@ -30,69 +29,103 @@ export default function ForgotPassword() {
   const handleSubmit = async () => {
     if (!email) {
       setStatus({ type: 'error', message: 'Por favor ingresa tu email.' });
-      return setOpen(true);
+      setOpen(true);
+      return;
     }
     try {
       const data = await ForgotPasswordController.requestPasswordReset(email);
       setStatus({ type: 'success', message: data.message || 'Revisa tu correo.' });
     } catch (err) {
-      setStatus({ type: 'error', message: err.response?.data?.error || 'Ocurrió un error.' });
+      setStatus({ type: 'error', message: err.response?.data?.error || 'Ocurrio un error.' });
     } finally {
       setOpen(true);
     }
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{
-        display:'flex', justifyContent:'center', alignItems:'center',
-        minHeight:'100vh', p: isMobile?2:3, bgcolor:'#fff'
-      }}>
-        <Container maxWidth="xs">
-          <Paper elevation={3} sx={{ p: isMobile?3:4 }}>
-            <Typography variant={isMobile?'h5':'h4'} gutterBottom align="center">
-              Recuperar Contraseña
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundImage: backgroundGradient,
+          px: 2,
+          py: 4,
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            width: '100%',
+            maxWidth: 440,
+            borderRadius: 4,
+            p: isMobile ? 3 : 4,
+            backgroundImage: cardBackground,
+            boxShadow: '0 35px 80px rgba(15,23,42,0.55)',
+            border: '1px solid rgba(148, 163, 184, 0.25)',
+          }}
+        >
+          <Box sx={{ mb: 3, textAlign: 'center' }}>
+            <Typography variant="overline" sx={{ letterSpacing: '0.2em', color: '#475569' }}>
+              Costosmart
             </Typography>
+            <Typography variant={isMobile ? 'h5' : 'h4'} sx={{ fontWeight: 700, color: '#0f172a' }}>
+              Recuperar acceso
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#475569' }}>
+              Te enviaremos un correo para que puedas restablecer tu contrasena.
+            </Typography>
+          </Box>
+
+          <Stack spacing={2}>
             <TextField
-              label="Tu correo electrónico"
+              label="Correo electronico"
               type="email"
               fullWidth
               required
-              margin="normal"
               value={email}
-              onChange={e => setEmail(e.target.value)}
-              size={isMobile?'small':'medium'}
+              onChange={(e) => setEmail(e.target.value)}
+              size={isMobile ? 'small' : 'medium'}
             />
-            <Button
-              variant="contained" fullWidth
-              onClick={handleSubmit}
-              sx={{ mt:2, py:isMobile?1:1.5 }}
-            >
-              Enviar enlace
-            </Button>
-            <Box sx={{ mt:2, textAlign:'center' }}>
-              <Typography variant="body2">
-                <RouterLink to="/login" style={{ textDecoration:'none' }}>
-                  Volver al inicio de sesión
-                </RouterLink>
-              </Typography>
-            </Box>
-          </Paper>
-        </Container>
-        <Snackbar
-          open={open}
-          autoHideDuration={6000}
-          onClose={() => setOpen(false)}
-        >
-          <Alert
-            onClose={() => setOpen(false)}
-            severity={status.type || 'info'}
-            sx={{ width:'100%' }}
+          </Stack>
+
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handleSubmit}
+            sx={{
+              mt: 3,
+              py: isMobile ? 1 : 1.4,
+              borderRadius: 2,
+              boxShadow: '0 20px 35px rgba(37,99,235,0.25)',
+            }}
           >
+            Enviar enlace
+          </Button>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Stack spacing={1.5}>
+            <Button
+              component={RouterLink}
+              to="/login"
+              variant="outlined"
+              sx={{
+                textTransform: 'none',
+                borderRadius: 2,
+                borderColor: 'rgba(37,99,235,0.35)',
+              }}
+            >
+              Volver al login
+            </Button>
+          </Stack>
+        </Paper>
+        <Snackbar open={open} autoHideDuration={6000} onClose={() => setOpen(false)}>
+          <Alert onClose={() => setOpen(false)} severity={status.type || 'info'} sx={{ width: '100%' }}>
             {status.message}
           </Alert>
         </Snackbar>
       </Box>
-    </ThemeProvider>
   );
 }

@@ -1,5 +1,3 @@
-// src/views/ResetPassword.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
@@ -8,35 +6,19 @@ import {
   Typography,
   Box,
   Paper,
-  Container,
   useMediaQuery,
-  ThemeProvider,
-  createTheme
+  Alert,
+  Stack,
 } from '@mui/material';
-import axios from 'axios';
+import { useTheme } from '@mui/material/styles';
+import api from '../components/AxiosConfig';
 
-// Crear tema responsive (igual que en LoginScreen)
-const theme = createTheme({
-  breakpoints: {
-    values: {
-      xs: 0,
-      sm: 600,
-      md: 900,
-      lg: 1200,
-      xl: 1536
-    }
-  },
-  palette: {
-    primary: {
-      main: '#1976d2'
-    },
-    background: {
-      default: '#ffffff'
-    }
-  }
-});
+const backgroundGradient = 'linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #312e81 100%)';
+const cardBackground =
+  'linear-gradient(180deg, rgba(248,250,252,0.98) 0%, rgba(241,245,249,0.98) 100%)';
 
 const ResetPassword = () => {
+  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
@@ -46,33 +28,33 @@ const ResetPassword = () => {
 
   useEffect(() => {
     if (!token) {
-      setError('Token inválido o inexistente.');
+      setError('Token invalido o inexistente.');
     }
   }, [token]);
 
   const handleReset = async () => {
     if (!newPassword) {
-      setError('Por favor ingresa tu nueva contraseña.');
+      setError('Por favor ingresa tu nueva contrasena.');
       return;
     }
     try {
-      // Ajusta la URL base si tu API corre en otro puerto
-       const res = await axios.post('http://149.50.131.253/api/users/reset-password', {
+      const res = await api.post('/users/reset-password', {
         token,
-        newPassword
+        newPassword,
       });
       if (res.data.success) {
-        setSuccessMsg('Contraseña restablecida. Redirigiendo al login...');
-        setTimeout(() => navigate('/login'), 3000);
+        setSuccessMsg('Contrasena restablecida. Redirigiendo al login...');
+        setError('');
+        setTimeout(() => navigate('/login'), 2500);
       } else {
-        setError(res.data.error || 'Ocurrió un problema.');
+        setError(res.data.error || 'Ocurrio un problema.');
       }
     } catch (err) {
-      console.error(err);
       const msg =
         err.response?.data?.error ||
-        'Error al restablecer la contraseña. Intenta nuevamente.';
+        'Error al restablecer la contrasena. Intenta nuevamente.';
       setError(msg);
+      setSuccessMsg('');
     }
   };
 
@@ -83,136 +65,101 @@ const ResetPassword = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundImage: backgroundGradient,
+        px: 2,
+        py: 4,
+      }}
+    >
+      <Paper
+        elevation={0}
         sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-          width: '100vw',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          backgroundColor: '#ffffff'
+          width: '100%',
+          maxWidth: 440,
+          borderRadius: 4,
+          p: isMobile ? 3 : 4,
+          backgroundImage: cardBackground,
+          boxShadow: '0 35px 80px rgba(15,23,42,0.55)',
+          border: '1px solid rgba(148, 163, 184, 0.25)',
         }}
       >
-        <Container
-          component="main"
-          maxWidth="xs"
+        <Box sx={{ mb: 3, textAlign: 'center' }}>
+          <Typography variant="overline" sx={{ letterSpacing: '0.2em', color: '#475569' }}>
+            Costosmart
+          </Typography>
+          <Typography variant={isMobile ? 'h5' : 'h4'} sx={{ fontWeight: 700, color: '#0f172a' }}>
+            Restablecer contrasena
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#475569' }}>
+            Ingresa tu nueva contrasena para recuperar el acceso.
+          </Typography>
+        </Box>
+
+        <Stack spacing={2}>
+          {error && (
+            <Alert severity="error" onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
+          {successMsg && (
+            <Alert severity="success" onClose={() => setSuccessMsg('')}>
+              {successMsg}
+            </Alert>
+          )}
+
+          <TextField
+            variant="outlined"
+            required
+            fullWidth
+            name="newPassword"
+            label="Nueva contrasena"
+            type="password"
+            id="newPassword"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            onKeyDown={handleKeyPress}
+            size={isMobile ? 'small' : 'medium'}
+          />
+        </Stack>
+
+        <Button
+          fullWidth
+          variant="contained"
+          color="primary"
+          onClick={handleReset}
+          size={isMobile ? 'medium' : 'large'}
           sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: isMobile ? 2 : 3,
-            backgroundColor: 'transparent'
+            mt: 3,
+            py: isMobile ? 1 : 1.4,
+            fontSize: isMobile ? '0.95rem' : '1rem',
+            borderRadius: 2,
+            boxShadow: '0 20px 35px rgba(37,99,235,0.25)',
           }}
         >
-          <Paper
-            elevation={3}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              p: isMobile ? 3 : 4,
-              width: '100%',
-              borderRadius: 2,
-              backgroundColor: '#ffffff'
-            }}
-          >
-            <Typography
-              component="h1"
-              variant={isMobile ? 'h5' : 'h4'}
-              sx={{
-                mb: 3,
-                fontWeight: 'bold',
-                color: 'primary.main'
-              }}
-            >
-              Restablecer Contraseña
-            </Typography>
+          Guardar nueva contrasena
+        </Button>
 
-            {error && (
-              <Typography
-                color="error"
-                sx={{
-                  mb: 2,
-                  textAlign: 'center',
-                  width: '100%'
-                }}
-              >
-                {error}
-              </Typography>
-            )}
-
-            {successMsg && (
-              <Typography
-                color="primary"
-                sx={{
-                  mb: 2,
-                  textAlign: 'center',
-                  width: '100%'
-                }}
-              >
-                {successMsg}
-              </Typography>
-            )}
-
-            <TextField
-              variant="outlined"
-              margin="normal"
-              required
-              fullWidth
-              name="newPassword"
-              label="Nueva Contraseña"
-              type="password"
-              id="newPassword"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              onKeyPress={handleKeyPress}
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ mb: 3 }}
-            />
-
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={handleReset}
-              size={isMobile ? 'medium' : 'large'}
-              sx={{
-                mb: 2,
-                py: isMobile ? 1 : 1.5,
-                fontSize: isMobile ? '0.875rem' : '1rem'
-              }}
-            >
-              Guardar Nueva Contraseña
-            </Button>
-
-            <Box
-              sx={{
-                width: '100%',
-                mt: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}
-            >
-              <Link to="/login" style={{ textDecoration: 'none' }}>
-                <Typography
-                  variant="body2"
-                  color="primary"
-                  sx={{ '&:hover': { textDecoration: 'underline' } }}
-                >
-                  Volver al Inicio de Sesión
-                </Typography>
-              </Link>
-            </Box>
-          </Paper>
-        </Container>
-      </Box>
-    </ThemeProvider>
+        <Button
+          component={Link}
+          to="/login"
+          variant="text"
+          sx={{
+            display: 'block',
+            mt: 2,
+            textTransform: 'none',
+            color: '#1d4ed8',
+            fontWeight: 600,
+          }}
+        >
+          Volver al inicio de sesion
+        </Button>
+      </Paper>
+    </Box>
   );
 };
 

@@ -1,15 +1,12 @@
-import axios from 'axios';
+import api from '../components/AxiosConfig';
 import { sendAuthenticatedRequest } from './LoginController';
 import LoginController from './LoginController';
-
-
-const baseUrl = 'http://149.50.131.253/api';
 
 const getToken = () => LoginController.getToken();
 
 export const fetchIngredientes = async () => {
   try {
-    const { ingredientes } = await sendAuthenticatedRequest(`${baseUrl}/ingredientes`);
+    const { ingredientes } = await sendAuthenticatedRequest(`/ingredientes`);
     return ingredientes;
   } catch (error) {
     console.error('Error al obtener los ingredientes:', error.message);
@@ -19,7 +16,7 @@ export const fetchIngredientes = async () => {
 
 export const fetchIngredientesMenosStock = async () => {
   try {
-    const response = await sendAuthenticatedRequest(`${baseUrl}/ingredientes/menosstock`);
+    const response = await sendAuthenticatedRequest(`/ingredientes/menosstock`);
     return response;
   } catch (error) {
     console.error('Error al obtener los ingredientes con menos stock:', error.message);
@@ -30,7 +27,7 @@ export const fetchIngredientesMenosStock = async () => {
 export const agregarIngrediente = async (ingrediente) => {
   try {
     const token = getToken();
-    const response = await axios.post(`${baseUrl}/ingredientes`, ingrediente, {
+    const response = await api.post(`/ingredientes`, ingrediente, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
@@ -46,7 +43,7 @@ export const agregarIngrediente = async (ingrediente) => {
 export const editarIngrediente = async (ingrediente) => {
   try {
     const token = getToken();
-    const response = await axios.put(`${baseUrl}/ingredientes/${ingrediente.id}`, ingrediente, {
+    const response = await api.put(`/ingredientes/${ingrediente.id}`, ingrediente, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
@@ -62,7 +59,7 @@ export const editarIngrediente = async (ingrediente) => {
 export const borrarIngrediente = async (id) => {
   try {
     const token = getToken();
-    const response = await axios.delete(`${baseUrl}/ingredientes/${id}`, {
+    const response = await api.delete(`/ingredientes/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -72,10 +69,22 @@ export const borrarIngrediente = async (id) => {
       return { success: true };
     } else {
       console.error('Error al eliminar el ingrediente:', response.data);
-      return { success: false, error: response.data };
+      const payload = response.data || {};
+      return {
+        success: false,
+        error: payload.error || 'Error al eliminar el ingrediente',
+        recetas: payload.details?.recetas ?? [],
+      };
     }
   } catch (error) {
     console.error('Error en la solicitud de borrado del ingrediente:', error);
-    return { success: false, error };
+    const payload = error?.response?.data || {};
+    const recetas = Array.isArray(payload.details?.recetas) ? payload.details.recetas : [];
+    const message =
+      payload.error ||
+      payload.message ||
+      error?.message ||
+      'Error al eliminar el ingrediente';
+    return { success: false, error: message, recetas };
   }
 };

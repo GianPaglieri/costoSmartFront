@@ -1,52 +1,62 @@
-import axios from 'axios';
+import api from '../components/AxiosConfig';
 import { LoginController, sendAuthenticatedRequest } from './LoginController';
-
-const baseUrl = 'http://149.50.131.253/api';
 
 const getToken = () => LoginController.getToken();
 
 // Función para obtener todas las recetas
 export const fetchRecetas = async () => {
   try {
-    const response = await sendAuthenticatedRequest(`${baseUrl}/recetas`);
+    const response = await sendAuthenticatedRequest(`/recetas`);
 
-    if (Array.isArray(response)) {
-      return response;
-    } else {
+    if (!Array.isArray(response)) {
       console.error('Formato de respuesta inesperado:', response);
       return [];
     }
+
+    return response.map((receta) => {
+      const idTorta = receta?.ID_TORTA ?? receta?.idTorta ?? receta?.id_torta;
+      const nombreTorta = receta?.nombre_torta ?? receta?.nombreTorta ?? receta?.nombre ?? '';
+      const descripcion = receta?.descripcion ?? receta?.descripcion_torta ?? receta?.detalle ?? '';
+      const imagen = receta?.imagen ?? receta?.imagen_torta ?? null;
+      const totalCost = Number(receta?.costos?.total ?? receta?.costo_total ?? 0);
+
+      const ingredientes = Array.isArray(receta?.ingredientes)
+        ? receta.ingredientes.map((ing) => {
+            const unitCostRaw = ing?.unit_cost ?? ing?.unitCost ?? 0;
+            const cantidadRaw =
+              ing?.total_cantidad ?? ing?.cantidad ?? ing?.totalCantidad ?? ing?.cantidad_total ?? 0;
+            const subtotalRaw =
+              ing?.subtotal_cost ?? ing?.subtotalCost ?? Number(unitCostRaw || 0) * Number(cantidadRaw || 0);
+
+            return {
+              ID_INGREDIENTE: ing?.ID_INGREDIENTE ?? ing?.idIngrediente ?? ing?.id ?? ing?.ID ?? null,
+              Nombre: ing?.Nombre ?? ing?.nombre ?? '',
+              total_cantidad: Number(cantidadRaw ?? 0),
+              unit_cost: Number(unitCostRaw ?? 0),
+              subtotal_cost: Number(subtotalRaw ?? 0),
+            };
+          })
+        : [];
+
+      const parsedId =
+        idTorta !== undefined && idTorta !== null && !Number.isNaN(Number(idTorta))
+          ? Number(idTorta)
+          : idTorta;
+
+      return {
+        ID_TORTA: parsedId,
+        nombre_torta: nombreTorta,
+        descripcion,
+        descripcion_torta: descripcion,
+        imagen,
+        imagen_torta: imagen,
+        costos: { total: totalCost },
+        ingredientes,
+      };
+    });
   } catch (error) {
     console.error('Error al obtener las recetas:', error.message);
     throw error;
-  }
-};
-
-// Función para obtener una receta por ID
-export const fetchRecetasById = async (ID_TORTA) => {
-  try {
-    const token = getToken();
-    const response = await axios.get(`${baseUrl}/recetas/${ID_TORTA}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error al obtener la receta por ID:', error);
-    throw error;
-  }
-};
-
-// Función para agregar una nueva receta
-export const agregarReceta = async (receta) => {
-  try {
-    const token = getToken();
-    const response = await axios.post(`${baseUrl}/recetas`, receta, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error al agregar la receta:', error);
-    return { success: false };
   }
 };
 
@@ -54,9 +64,13 @@ export const agregarReceta = async (receta) => {
 export const agregarIngrediente = async (ID_TORTA, ID_INGREDIENTE, cantidad) => {
   try {
     const token = getToken();
-    const response = await axios.post(
-      `${baseUrl}/recetas/nueva-relacion`,
-      { ID_TORTA, ID_INGREDIENTE, cantidad },
+    const cantidadNum = Number(cantidad);
+    if (Number.isNaN(cantidadNum)) {
+      return { success: false, error: 'Cantidad inválida' };
+    }
+    const response = await api.post(
+      `/recetas/nueva-relacion`,
+      { ID_TORTA, ID_INGREDIENTE, cantidad: cantidadNum },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -76,8 +90,8 @@ export const agregarIngrediente = async (ID_TORTA, ID_INGREDIENTE, cantidad) => 
 export const eliminarIngrediente = async (ID_TORTA, ID_INGREDIENTE) => {
   try {
     const token = getToken();
-    const response = await axios.delete(
-      `${baseUrl}/recetas/${ID_TORTA}/${ID_INGREDIENTE}`,
+    const response = await api.delete(
+      `/recetas/${ID_TORTA}/${ID_INGREDIENTE}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -96,17 +110,18 @@ export const eliminarIngrediente = async (ID_TORTA, ID_INGREDIENTE) => {
 // Función para editar una receta
 export const editarReceta = async (receta) => {
   try {
-    const { ID_TORTA, ID_INGREDIENTE, total_cantidad } = receta;
-
-    // Verificar que los valores no sean undefined
-    if (!ID_TORTA || !ID_INGREDIENTE || !total_cantidad) {
-      throw new Error('Faltan datos de la receta');
+    const { ID_TORTA, ID_INGREDIENTE } = receta;
+    // Aceptar 0 como valor válido; validar numérico
+    const total_cantidad = receta.total_cantidad;
+    const cantidadNum = total_cantidad === '' ? NaN : Number(total_cantidad);
+    if (!ID_TORTA || !ID_INGREDIENTE || Number.isNaN(cantidadNum)) {
+      throw new Error('Faltan datos de la receta o cantidad inválida');
     }
 
     const token = getToken();
-    const response = await axios.put(
-      `${baseUrl}/recetas/${ID_TORTA}/${ID_INGREDIENTE}`,
-      { total_cantidad },
+    const response = await api.put(
+      `/recetas/${ID_TORTA}/${ID_INGREDIENTE}`,
+      { total_cantidad: cantidadNum },
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
@@ -115,26 +130,3 @@ export const editarReceta = async (receta) => {
     return { success: false, error: error.message || 'Error interno' };
   }
 };
-
-
-// Función para borrar una receta
-export const borrarReceta = async (id) => {
-  try {
-    const token = getToken();
-    const response = await axios.delete(`${baseUrl}/recetas/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (response.status === 204) {
-      return { success: true };
-    } else {
-      console.error('Error al eliminar la receta');
-      return { success: false, error: 'Error al eliminar la receta' };
-    }
-  } catch (error) {
-    console.error('Error en la solicitud de borrado de la receta:', error);
-    return { success: false, error };
-  }
-};
-
-export { baseUrl };

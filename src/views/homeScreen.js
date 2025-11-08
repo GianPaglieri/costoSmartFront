@@ -1,22 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
-  Paper, Typography, Button, Select, MenuItem, Grid, 
-  Snackbar, Alert, useMediaQuery, ThemeProvider, createTheme 
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Autocomplete,
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Grid,
+  Paper,
+  Snackbar,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
 } from '@mui/material';
-import { fetchIngredientesMenosStock } from '../controllers/IngredientController';
-import { obtenerCantidadVentas, registrarVenta, obtenerGanancias, obtenerVentas, obtenerCantidadVentasSemanales, obtenerPorcentajeVentas } from '../controllers/VentaController';
-import { fetchListaPrecios, fetchPrecioPorIdTorta } from '../controllers/ListaPreciosController';
-import styles from '../styles/styles';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Doughnut } from 'react-chartjs-2';
-import { Chart, DoughnutController, Tooltip, Legend, ArcElement } from 'chart.js';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import { Chart, ArcElement, DoughnutController, Legend, Tooltip } from 'chart.js';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import BakeryDiningOutlinedIcon from '@mui/icons-material/BakeryDiningOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
+import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import { Link } from 'react-router-dom';
+import api from '../components/AxiosConfig';
+import { fetchListaPrecios } from '../controllers/ListaPreciosController';
+import { fetchIngredientesMenosStock } from '../controllers/IngredientController';
+import {
+  obtenerGanancias,
+  obtenerCantidadVentas,
+  obtenerCantidadVentasSemanales,
+  obtenerPorcentajeVentas,
+  obtenerVentas,
+  registrarVenta,
+} from '../controllers/VentaController';
+import useResponsive from '../utils/useResponsive';
+import { formatCurrency } from '../utils/formatters';
+import { buildImageUrl } from '../utils/media';
 
 Chart.register(DoughnutController, Tooltip, Legend, ArcElement);
 
-const baseUrl = 'http://149.50.131.253/api'; 
+
+// API base is centralized in AxiosConfig; avoid hardcoding URLs
 
 // Crear tema responsive
 const theme = createTheme({
@@ -31,16 +66,37 @@ const theme = createTheme({
   },
 });
 
+
+const DEFAULT_RANGE_LABEL = 'Últimos 7 días';
+
+const formatRangeLabel = (range) => {
+  if (!range?.inicio || !range?.fin) {
+    return DEFAULT_RANGE_LABEL;
+  }
+  try {
+    const formatter = new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit' });
+    const startDate = formatter.format(new Date(range.inicio));
+    const endDate = formatter.format(new Date(range.fin));
+    return `${startDate} - ${endDate}`;
+  } catch (error) {
+    return DEFAULT_RANGE_LABEL;
+  }
+};
 const HomeScreen = () => {
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const uploadsBase = api?.defaults?.baseURL
+    ? (api.defaults.baseURL === '/api' ? '/api' : api.defaults.baseURL)
+    : '';
+  const buildImg = (relPath) => buildImageUrl(relPath, uploadsBase);
+  const { isMobile, isCompact } = useResponsive(theme);
+
   
   const [listaPrecios, setListaPrecios] = useState([]);
+  const [filtro, setFiltro] = useState('');
   const [ingredientesFaltantes, setIngredientesFaltantes] = useState([]);
   const [selectedTorta, setSelectedTorta] = useState(null);
   const [selectedTortaInfo, setSelectedTortaInfo] = useState(null);
-  const [mensaje, setMensaje] = useState('');
   const [cantidadVentas, setCantidadVentas] = useState(0);
+  const [rangoVentas, setRangoVentas] = useState(null);
   const [cantidadVentasSemana, setCantidadVentasSemana] = useState(0);
   const [porcentajeVentas, setPorcentajeVentas] = useState(0);
   const [ganancias, setGanancias] = useState(0);
@@ -55,7 +111,53 @@ const HomeScreen = () => {
   });
   const [alertMessage, setAlertMessage] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [aumento, setAumento] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [topTorta, setTopTorta] = useState(null);
+  const totalGanancias = useMemo(() => {
+    if (typeof ganancias === 'number') {
+      return ganancias;
+    }
+    return Number(ganancias?.ganancias ?? 0);
+  }, [ganancias]);
+
+  const formattedGanancias = useMemo(() => formatCurrency(totalGanancias), [totalGanancias]);
+
+  const ventasRangeLabel = useMemo(() => formatRangeLabel(rangoVentas), [rangoVentas]);
+  const tortaStats = useMemo(() => {
+    if (!selectedTortaInfo) return [];
+
+    const margenValor = Number(selectedTortaInfo?.porcentaje_ganancia ?? 0);
+    const margenRedondeado = Number.isFinite(margenValor) ? Math.round(margenValor) : 0;
+    const margenColor = margenRedondeado > 0 ? '#0f766e' : '#475569';
+    const margenBg = margenRedondeado > 0 ? 'rgba(15,118,110,0.08)' : 'rgba(71,85,105,0.06)';
+
+    return [
+      {
+        key: 'costo',
+        label: 'Costo',
+        value: formatCurrency(selectedTortaInfo?.costo_total),
+        icon: <SavingsOutlinedIcon />,
+        bg: 'rgba(37,99,235,0.08)',
+        color: '#1d4ed8',
+      },
+      {
+        key: 'lista',
+        label: 'Lista',
+        value: formatCurrency(selectedTortaInfo?.precio_lista),
+        icon: <ReceiptLongOutlinedIcon />,
+        bg: 'rgba(124,58,237,0.08)',
+        color: '#6d28d9',
+      },
+      {
+        key: 'margen',
+        label: 'Margen',
+        value: `${margenRedondeado}%`,
+        icon: <TrendingUpOutlinedIcon />,
+        bg: margenBg,
+        color: margenColor,
+      },
+    ];
+  }, [selectedTortaInfo]);
 
   useEffect(() => {
     obtenerIngredientesFaltantes();
@@ -68,18 +170,27 @@ const HomeScreen = () => {
       actualizarChartData(ventas);
     });
     obtenerCantidadVentasSemanales().then((cantidad) => {
-      console.log('Cantidad de ventas semanales obtenida desde Home:', cantidad); // Agrega este console.log
       setCantidadVentasSemana(cantidad.cantidadVentas); // Accede directamente a cantidadVentasSemana
     }).catch(error => {
       console.error('Error al obtener la cantidad de ventas semanales:', error);
     });
     obtenerPorcentajeVentas().then((porcentaje) => {
       setPorcentajeVentas(porcentaje);
-      setAumento(porcentaje.porcentajeCambio > 0);
     }).catch(error => {
       console.error('Error al obtener el porcentaje de ventas:', error);
     });
   }, []);
+
+  // Escuchar buscador global en AppBar para filtrar tortas del selector
+  useEffect(() => {
+    const handleSearch = (e) => setFiltro((e?.detail?.q || '').trim());
+    window.addEventListener('ui:search', handleSearch);
+    return () => window.removeEventListener('ui:search', handleSearch);
+  }, []);
+
+  const listaFiltrada = filtro
+    ? listaPrecios.filter((t) => (t?.nombre_torta || '').toLowerCase().includes(filtro.toLowerCase()))
+    : listaPrecios;
 
   const actualizarChartData = (ventas) => {
    
@@ -109,6 +220,15 @@ const HomeScreen = () => {
         },
       ],
     });
+
+    // calcular torta mas vendida
+    if (labels.length) {
+      let maxIdx = 0;
+      for (let i = 1; i < data.length; i++) if (data[i] > data[maxIdx]) maxIdx = i;
+      setTopTorta({ nombre: labels[maxIdx], cantidad: data[maxIdx] });
+    } else {
+      setTopTorta(null);
+    }
   };
 
   const obtenerListaPrecios = async () => {
@@ -135,7 +255,9 @@ const HomeScreen = () => {
       const respuestaCantidadVentas = await obtenerCantidadVentas();
       if (respuestaCantidadVentas && respuestaCantidadVentas.cantidadVentas !== undefined) {
         setCantidadVentas(respuestaCantidadVentas.cantidadVentas);
+        setRangoVentas(respuestaCantidadVentas.rango || null);
       } else {
+        setRangoVentas(null);
         console.error('Error: respuesta de obtenerCantidadVentas no tiene la estructura esperada');
       }
       const nuevaCantidadVentasSemanales = await obtenerCantidadVentasSemanales();
@@ -145,24 +267,19 @@ const HomeScreen = () => {
     }
   };
 
-  const renderizarItem = (item) => (
-    <TableRow key={item.id} style={styles.tableRow}>
-      <TableCell style={styles.tableCell}>{item.nombre}</TableCell>
-      <TableCell style={styles.tableCell}>{item.CantidadStock}</TableCell>
-    </TableRow>
-  );
   const actualizarTodosLosDatos = async () => {
     try {
       // Actualizar ingredientes faltantes
       await obtenerIngredientesFaltantes();
       
-      // Actualizar ventas y gráfico
+      // Actualizar ventas y grafico
       const ventas = await obtenerVentas();
       actualizarChartData(ventas);
       
       // Actualizar cantidad de ventas
       const nuevaCantidadVentas = await obtenerCantidadVentas();
       setCantidadVentas(nuevaCantidadVentas.cantidadVentas);
+      setRangoVentas(nuevaCantidadVentas.rango || null);
       
       // Actualizar ganancias
       const nuevasGanancias = await obtenerGanancias();
@@ -175,40 +292,51 @@ const HomeScreen = () => {
       // Actualizar porcentaje de ventas
       const nuevoPorcentaje = await obtenerPorcentajeVentas();
       setPorcentajeVentas(nuevoPorcentaje);
-      setAumento(nuevoPorcentaje.porcentajeCambio > 0);
       
     } catch (error) {
       console.error('Error al actualizar los datos:', error);
     }
   };
-  const renderizarEncabezado = () => (
-    <TableRow>
-      <TableCell style={{ ...styles.tableHeaderCell, fontWeight: 'bold' }}>Nombre Ingrediente</TableCell>
-    <TableCell style={{ ...styles.tableHeaderCell, fontWeight: 'bold' }}>Cantidad Stock</TableCell>
-    </TableRow>
-  );
 
   const handleGenerarVenta = async () => {
-    if (selectedTorta) {
+    if (selectedTorta && !isGenerating) {
       try {
-        console.log('Datos enviados al backend:', { id_torta: selectedTorta.id_torta });
+        setIsGenerating(true);
         const response = await registrarVenta(selectedTorta.id_torta);
-        console.log('Respuesta del servidor al registrar venta:', response);
         
         if (response.success) {
-          // Actualizar todos los datos después de una venta exitosa
+          // Actualizar todos los datos despues de una venta exitosa
           await actualizarTodosLosDatos();
           
           setAlertMessage({ type: 'success', message: 'Venta generada exitosamente' });
           setSnackbarOpen(true);
         } else {
-          setAlertMessage({ type: 'error', message: response.error });
+          const detalles = Array.isArray(response?.details) ? response.details : [];
+          const detallesTexto = detalles.length
+            ? ' | Faltantes: ' +
+                detalles
+                  .map((item) => {
+                    const nombre = item?.nombre || 'Ingrediente';
+                    const disponible = item?.disponible ?? 0;
+                    const requerido = item?.requerido ?? 0;
+                    const faltante = item?.faltante ?? Math.max(requerido - disponible, 0);
+                    const unidad = item?.unidad ? ` ${item.unidad}` : '';
+                    return `${nombre} (faltan ${faltante}${unidad}; stock ${disponible}${unidad}/${requerido}${unidad})`;
+                  })
+                  .join(' | ')
+            : '';
+          setAlertMessage({
+            type: 'error',
+            message: `${response.error || 'No se pudo registrar la venta'}${detallesTexto}`,
+          });
           setSnackbarOpen(true);
         }
       } catch (error) {
         console.error('Error al generar la venta:', error);
         setAlertMessage({ type: 'error', message: 'Error al generar la venta' });
         setSnackbarOpen(true);
+      } finally {
+        setIsGenerating(false);
       }
     }
   };
@@ -218,9 +346,8 @@ const HomeScreen = () => {
       const listaPrecios = await fetchListaPrecios();
       const selectedTorta = listaPrecios.find(torta => torta.id_torta === tortaId);
       setSelectedTortaInfo(selectedTorta);
-      console.log('Datos de la torta seleccionada:', selectedTorta); 
     } catch (error) {
-      console.error('Error al obtener la información de la torta:', error);
+      console.error('Error al obtener la informacion de la torta:', error);
       setSelectedTortaInfo(null);
     }
   };
@@ -230,142 +357,322 @@ const HomeScreen = () => {
   };
   return (
     <ThemeProvider theme={theme}>
-  <div style={{ 
-    ...styles.container, 
-    padding: isMobile ? '10px' : '20px',
-    marginLeft: isMobile ? '0' : '40px',
-    marginRight: isMobile ? '0' : '40px'
-  }}>
-    <Grid container spacing={isMobile ? 1 : 2}>
-      <Grid item xs={12} md={6}>
-        <Paper style={{ 
-          ...styles.card, 
-          backgroundColor: '#E1F5FE', 
-          padding: isMobile ? '15px' : '30px',
-          height: '100%'
-        }}>
-          <Typography variant={isMobile ? 'h6' : 'h5'} style={styles.cardTitle}>
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 2,
+      minHeight: '100vh',
+      backgroundColor: '#f8fafc',
+      width: '100%',
+      maxWidth: { xs: '100%', lg: 1200 },
+      mx: 'auto',
+      px: { xs: 1.5, sm: 3 },
+      py: { xs: 2, sm: 3 },
+      boxSizing: 'border-box',
+      overflowX: 'hidden',
+    }}
+  >
+    <Grid container spacing={{ xs: 1.5, md: 2 }}>
+      <Grid item xs={12} lg={6} xl={5}>
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            p: { xs: 2, sm: 3 },
+            backgroundColor: '#E1F5FE',
+            minHeight: '100%',
+            boxShadow: '0 20px 40px rgba(15,23,42,0.15)',
+            width: '100%',
+            maxWidth: { xs: '100%', lg: '100%' },
+          }}
+        >
+          <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 700, mb: 1 }}>
             Ventas Totales
           </Typography>
-          <Typography style={styles.cardSubtitle}>{cantidadVentas} cantidad de ventas totales</Typography>
-          <Typography style={styles.cardValue}>${ganancias.ganancias}</Typography>
-          <div style={styles.cardFooter}>
-  <div style={{ display: 'flex', alignItems: 'center' }}>
-    <Typography 
-      style={{ 
-        color: porcentajeVentas.porcentajeCambio?.includes('-') ? 'red' : 'green',
-        fontWeight: 'bold',
-        marginRight: '4px',
-        fontSize: '14px' // Ajusta según necesites
-      }}
-    >
-      {porcentajeVentas.porcentajeCambio}
-    </Typography>
-    <Typography style={{ color: 'black', fontSize: '14px' }}>
-      de variación semanal
-    </Typography>
-  </div>
-  <Typography style={styles.cardFooterTextRight}>
-    {(cantidadVentasSemana.cantidadVentas)} ventas esta semana
-  </Typography>
-</div>
+          <Typography sx={{ color: '#64748b', fontSize: '0.95rem' }}>
+            {cantidadVentas} ventas ({ventasRangeLabel})
+          </Typography>
+          <Typography sx={{ fontSize: isMobile ? '2rem' : '2.4rem', fontWeight: 700, mt: 1 }}>
+            {formattedGanancias}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {(() => {
+                const raw = porcentajeVentas?.porcentajeCambio;
+                let val = null;
+                if (raw && typeof raw === 'string') {
+                  const n = parseFloat(String(raw).replace('%','').replace(',','.'));
+                  if (!Number.isNaN(n)) val = n;
+                }
+                if (val === null) return <Chip icon={<InfoOutlinedIcon />} label="Sin datos de semana anterior" size={isMobile ? 'small' : 'medium'} variant="outlined"/>;
+                if (val > 0) return <Chip icon={<ArrowUpwardIcon />} color="success" label={`+${val}%`} size={isMobile ? 'small' : 'medium'} variant="outlined"/>;
+                if (val < 0) return <Chip icon={<ArrowDownwardIcon />} color="error" label={`${val}%`} size={isMobile ? 'small' : 'medium'} variant="outlined"/>;
+                return <Chip icon={<TrendingFlatIcon />} label={`0%`} size={isMobile ? 'small' : 'medium'} variant="outlined"/>;
+              })()}
+              <Typography variant="body2" color="text.secondary">vs semana anterior</Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary">
+              {cantidadVentasSemana?.cantidadVentas ?? 0} ventas esta semana
+            </Typography>
+          </Box>
+          
+          <Divider sx={{ my: 2 }} />
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            {topTorta && (
+              <Chip label={`Mas vendida: ${topTorta.nombre}`} color="secondary" variant="outlined" />
+            )}
+            <Chip label={`Tortas: ${listaPrecios.length}`} variant="outlined" />
+          </Stack>
         </Paper>
       </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Paper style={{ 
-              ...styles.card, 
-              padding: isMobile ? '15px' : '30px',
-              height: '100%'
-            }}>
-              <Typography variant={isMobile ? 'h6' : 'h5'} style={styles.cardTitle}>
-                Generar venta
-              </Typography>
-              <Typography style={styles.cardSubtitle}>
-                Al generar una venta, el stock se actualizará automáticamente.
-              </Typography>
-              
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: isMobile ? 'column' : 'row', 
-                alignItems: 'center',
-                gap: '20px'
-              }}>
-                {selectedTortaInfo && (
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'center',
-                    marginBottom: isMobile ? '15px' : '0'
-                  }}>
-                    <img 
-                      src={`${baseUrl}/${selectedTortaInfo.imagen_torta}`} 
-                      alt="Torta" 
-                      style={{ 
-                        width: isMobile ? '80px' : '100px', 
-                        height: isMobile ? '80px' : '100px', 
-                        objectFit: 'cover',
-                        borderRadius: '5px' 
-                      }} 
-                    />
-                    <Typography variant="body1" style={{ textAlign: 'center', fontWeight: 'bold' }}>
-                      {selectedTortaInfo.nombre_torta}
-                    </Typography>
-                    <Typography variant="body2" style={{ textAlign: 'center', fontWeight: 'bold' }}>
-                      ${selectedTortaInfo.costo_total}
-                    </Typography>
-                  </div>
-                )}
-                
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  width: isMobile ? '100%' : 'auto'
-                }}>
-                  <Select
-                    value={selectedTorta ? selectedTorta.id_torta : ''}
-                    onChange={(e) => {
-                      setSelectedTorta(listaPrecios.find(torta => torta.id_torta === e.target.value));
-                      handleTortaSeleccionada(e.target.value); 
+      <Grid item xs={12} lg={6} xl={5} sx={{ display: 'flex' }}>
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            p: { xs: 2, sm: 3 },
+            backgroundColor: '#ffffff',
+            minHeight: '100%',
+            boxShadow: '0 20px 40px rgba(15,23,42,0.12)',
+            width: '100%',
+            maxWidth: { xs: '100%', lg: '100%' },
+          }}
+        >
+          <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 700, mb: 1 }}>
+            Generar venta
+          </Typography>
+          <Typography sx={{ color: '#64748b', fontSize: '0.95rem' }}>
+            Al generar una venta, el stock se actualizara automaticamente.
+          </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: isMobile || isCompact ? '1fr' : 'minmax(0, 1.3fr) minmax(0, 1fr)',
+              gap: isMobile ? 2 : 3,
+              alignItems: 'flex-start',
+              mt: 2,
+            }}
+          >
+            <Stack spacing={1.5}>
+                  <Autocomplete
+                    options={listaFiltrada}
+                    value={selectedTorta}
+                    onChange={(e, val) => {
+                      setSelectedTorta(val || null);
+                      if (val) handleTortaSeleccionada(val.id_torta);
+                      else setSelectedTortaInfo(null);
                     }}
-                    style={{ 
-                      width: isMobile ? '100%' : '200px',
-                      marginBottom: '10px'
-                    }}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>
-                      Seleccione torta...
-                    </MenuItem>
-                    {listaPrecios.map((torta) => (
-                      <MenuItem key={torta.id_torta} value={torta.id_torta}>
-                        {torta.nombre_torta}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <Button 
-                    variant="contained" 
-                    color="primary" 
+                    isOptionEqualToValue={(opt, val) => opt?.id_torta === val?.id_torta}
+                    getOptionLabel={(opt) => opt?.nombre_torta || ''}
+                    noOptionsText="No hay resultados"
+                    renderOption={(props, option) => (
+                      <li {...props}>
+                        <Box
+                          component="img"
+                          src={buildImg(option?.imagen_torta)}
+                          alt="prev"
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            objectFit: 'cover',
+                            borderRadius: 1,
+                            mr: 1.5,
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.src = '/no-image.svg';
+                          }}
+                        />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {option?.nombre_torta}
+                          </Typography>
+                          <Typography variant="caption" sx={{ opacity: 0.65 }}>
+                            {formatCurrency(option?.precio_lista ?? option?.costo_total)}
+                          </Typography>
+                        </Box>
+                      </li>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Buscar torta..."
+                        size={isMobile ? 'small' : 'medium'}
+                      />
+                    )}
+                    sx={{ width: '100%' }}
+                    ListboxProps={{ style: { maxHeight: 280 } }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Selecciona una torta de la lista para cargar automaticamente su informacion de
+                    precio y stock.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
                     onClick={handleGenerarVenta}
-                    style={{ width: isMobile ? '100%' : 'auto' }}
+                    disabled={!selectedTorta || isGenerating}
+                    sx={{
+                      alignSelf: isMobile ? 'stretch' : 'flex-start',
+                      px: isMobile ? 2 : 3,
+                      py: isMobile ? 1 : 1.2,
+                      minWidth: 160,
+                      borderRadius: 2,
+                      boxShadow: '0 16px 32px rgba(59,130,246,0.25)',
+                      textTransform: 'none',
+                    }}
                   >
-                    Generar Venta
+                    {isGenerating ? 'Generando...' : 'Generar Venta'}
                   </Button>
-                </div>
-              </div>
-            </Paper>
-          </Grid>
-        </Grid>
+                </Stack>
 
-        {/* Segunda fila - Tabla y gráfico */}
-        <Grid container spacing={isMobile ? 1 : 2} style={{ marginTop: '15px' }}>
-          <Grid item xs={12} md={6}>
-            <Paper style={{ 
-              ...styles.card, 
-              padding: isMobile ? '15px' : '20px',
-              height: '100%'
-            }}>
-              <Typography variant={isMobile ? 'h6' : 'h5'} style={styles.cardTitle}>
+                {selectedTortaInfo && (
+                  <Stack
+                    spacing={1}
+                    sx={{
+                      width: '100%',
+                      minWidth: isMobile ? '100%' : 280,
+                      borderRadius: 2,
+                      border: '1px solid rgba(59,130,246,0.15)',
+                      backgroundColor: 'rgba(241,245,249,0.85)',
+                      p: isMobile ? 1.25 : 1.5,
+                    }}
+                  >
+                    <Stack
+                      direction={isMobile || isCompact ? 'column' : 'row'}
+                      spacing={isMobile ? 1 : 1.5}
+                      alignItems={isMobile || isCompact ? 'flex-start' : 'center'}
+                    >
+                      <Box
+                        component="img"
+                        src={buildImg(selectedTortaInfo?.imagen_torta)}
+                        alt={selectedTortaInfo?.nombre_torta || 'Torta'}
+                        sx={{
+                          width: isMobile ? 68 : 82,
+                          height: isMobile ? 68 : 82,
+                          objectFit: 'cover',
+                          borderRadius: 12,
+                          boxShadow: '0 8px 20px rgba(15,23,42,0.18)',
+                          flexShrink: 0,
+                        }}
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.src = '/no-image.png';
+                        }}
+                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            fontWeight: 600,
+                            lineHeight: 1.2,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {selectedTortaInfo.nombre_torta}
+                        </Typography>
+
+                      </Box>
+                    </Stack>
+                    <Stack spacing={0.75} sx={{ width: '100%' }}>
+                      {tortaStats.map((stat) => (
+                        <Box
+                          key={stat.key}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1,
+                            padding: '12px 14px',
+                            borderRadius: 2,
+                            border: '1px solid rgba(15,23,42,0.08)',
+                            backgroundColor: stat.bg,
+                            width: '100%',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <Box
+                              sx={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: '50%',
+                                display: 'grid',
+                                placeItems: 'center',
+                                backgroundColor: 'rgba(15,23,42,0.06)',
+                                color: stat.color,
+                                '& svg': { fontSize: '1rem' },
+                              }}
+                            >
+                              {stat.icon}
+                            </Box>
+                            <Typography
+                              variant="caption"
+                              sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', color: '#475569' }}
+                            >
+                              {stat.label}
+                            </Typography>
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              color: stat.color,
+                              textAlign: 'right',
+                              whiteSpace: 'normal',
+                              wordBreak: 'break-word',
+                              flex: '1 0 auto',
+                            }}
+                          >
+                            {stat.value}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Stack>
+                )}
+              </Box>
+            </Paper>
+      </Grid>
+    </Grid>
+
+    {/* Acciones rapidas (separadas para no mezclar con la card) */}
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: 3,
+        p: { xs: 1.5, sm: 2 },
+        backgroundColor: '#ffffff',
+        boxShadow: '0 18px 32px rgba(15,23,42,0.12)',
+        mt: 2,
+      }}
+    >
+      <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Acciones rapidas</Typography>
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+        <Button variant="outlined" size={isMobile ? 'small' : 'medium'} startIcon={<BakeryDiningOutlinedIcon />} component={Link} to="/tortas">Nueva torta</Button>
+        <Button variant="outlined" size={isMobile ? 'small' : 'medium'} startIcon={<Inventory2OutlinedIcon />} component={Link} to="/ingredientes">Nuevo ingrediente</Button>
+        <Button variant="outlined" size={isMobile ? 'small' : 'medium'} startIcon={<MenuBookOutlinedIcon />} component={Link} to="/recetas">Nueva receta</Button>
+      </Stack>
+    </Paper>
+
+        {/* Segunda fila - Tabla y grafico */}
+        <Grid container spacing={{ xs: 1.5, md: 2 }} sx={{ mt: { xs: 2, md: 3 } }}>
+          <Grid item xs={12} lg={6} xl={6} sx={{ display: 'flex' }}>
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: 3,
+                p: { xs: 2, sm: 2.5 },
+                backgroundColor: '#ffffff',
+                boxShadow: '0 18px 32px rgba(15,23,42,0.1)',
+                minHeight: '100%',
+              }}
+            >
+              <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 700, mb: 1 }}>
                 Ingredientes con menos stock
               </Typography>
               
@@ -376,8 +683,8 @@ const HomeScreen = () => {
                   <Table size={isMobile ? 'small' : 'medium'}>
                     <TableHead>
                       <TableRow>
-                        <TableCell style={{ fontWeight: 'bold' }}>Nombre</TableCell>
-                        <TableCell style={{ fontWeight: 'bold' }} align="right">Stock</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Nombre</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">Stock</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -397,36 +704,47 @@ const HomeScreen = () => {
                 color="primary"
                 component={Link}
                 to="/ingredientes"
-                style={{ marginTop: '15px', width: isMobile ? '100%' : 'auto' }}
+                sx={{ mt: 2, width: isMobile ? '100%' : 'auto' }}
               >
                 Actualizar Stock
               </Button>
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Paper style={{ 
-              ...styles.card, 
-              padding: isMobile ? '15px' : '20px',
-              height: '100%'
-            }}>
-              <Typography variant={isMobile ? 'h6' : 'h5'} style={styles.cardTitle}>
+          <Grid item xs={12} lg={6} xl={6} sx={{ display: 'flex' }}>
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: 3,
+                p: { xs: 2, sm: 2.5 },
+                backgroundColor: '#ffffff',
+                boxShadow: '0 18px 32px rgba(15,23,42,0.1)',
+                minHeight: '100%',
+              }}
+            >
+              <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 700, mb: 1 }}>
                 Tortas Vendidas
               </Typography>
-              <div style={{ 
-                height: isMobile ? '250px' : '300px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
+              <Box
+                sx={{
+                  height: isMobile ? 250 : 300,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
                 <Doughnut 
                   data={chartData} 
                   options={{
                     maintainAspectRatio: false,
-                    responsive: true
+                    responsive: true,
+                    cutout: '60%',
+                    plugins: {
+                      legend: { position: 'bottom' },
+                    }
                   }} 
                 />
-              </div>
+              </Box>
             </Paper>
           </Grid>
         </Grid>
@@ -444,7 +762,7 @@ const HomeScreen = () => {
             {alertMessage?.message}
           </Alert>
         </Snackbar>
-      </div>
+      </Box>
     </ThemeProvider>
   );
 };

@@ -1,208 +1,290 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  InputAdornment,
-  Grid,
-  IconButton,
-  useMediaQuery,
-  ThemeProvider,
-  createTheme,
+  Alert,
   Box,
-  Typography,
-  Avatar,
+  Button,
+  Grid,
   Snackbar,
-  Alert
+  useMediaQuery,
 } from '@mui/material';
-import { 
-  Search as SearchIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  Cancel as CancelIcon,
-  Image as ImageIcon
-} from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { fetchTortas, agregarTorta, editarTorta, borrarTorta } from '../controllers/TortaController';
+import { useTheme } from '@mui/material/styles';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-// Tema responsive
-const theme = createTheme({
-  breakpoints: {
-    values: {
-      xs: 0,
-      sm: 600,
-      md: 900,
-      lg: 1200,
-      xl: 1536,
-    },
+import useDialogState from '../hooks/useDialogState';
+import useGlobalSearch from '../hooks/useGlobalSearch';
+import useEntityForm from '../hooks/useEntityForm';
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
+import TortasTable from './tortas/TortasTable';
+import TortaFormDialog from './tortas/TortaFormDialog';
+import { fetchTortas, agregarTorta, editarTorta, borrarTorta } from '../controllers/TortaController';
+import api from '../components/AxiosConfig';
+
+const sanitizePercentInput = (value = '') => String(value).replace(/[^0-9.,-]/g, '');
+
+const parsePercentValue = (value = '') => {
+  if (value === null || value === undefined || value === '') return 0;
+  const normalized = String(value).replace(',', '.');
+  const parsed = parseFloat(normalized);
+  return Number.isNaN(parsed) ? NaN : parsed;
+};
+
+const TORTA_INITIAL_VALUES = {
+  nombre_torta: '',
+  descripcion_torta: '',
+  porcentaje_ganancia: '0',
+  imagen: null,
+};
+
+const tortaValidators = {
+  nombre_torta: (value) => (!value ? 'Ingresá el nombre de la torta.' : null),
+  descripcion_torta: (value) => (!value ? 'Ingresá una descripción.' : null),
+  porcentaje_ganancia: (value) => {
+    const parsed = parsePercentValue(value);
+    if (Number.isNaN(parsed) || parsed < 0) return 'Ingresá un porcentaje válido.';
+    return null;
   },
-});
+};
+
+const uploadsBase = api?.defaults?.baseURL
+  ? api.defaults.baseURL === '/api'
+    ? '/api'
+    : api.defaults.baseURL
+  : '';
+
+const buildImg = (relativePath) => {
+  if (!relativePath) return null;
+  if (/^https?:\/\//i.test(relativePath)) return relativePath;
+  const base = uploadsBase.replace(/\/$/, '');
+  const normalized = String(relativePath).replace(/^\/+/, '');
+  return `${base}/${normalized}`;
+};
 
 const TortasScreen = () => {
+  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const location = useLocation();
 
   const [tortas, setTortas] = useState([]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editedTorta, setEditedTorta] = useState(null);
-  const [newTorta, setNewTorta] = useState({
-    nombre_torta: '',
-    descripcion_torta: '',
-    imagen: null,
-  });
-  const [filtro, setFiltro] = useState('');
-  const [error, setError] = useState('');
-  const [alertMessage, setAlertMessage] = useState(null);
+  const [alert, setAlert] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [currentTorta, setCurrentTorta] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
-  // 1) Cargar lista de tortas al montar la pantalla
-  useEffect(() => {
-    obtenerTortas();
-  }, []);
+  const modalDialog = useDialogState(false);
+  const deleteDialog = useDialogState(false);
 
-  const obtenerTortas = async () => {
+  const tortaForm = useEntityForm(TORTA_INITIAL_VALUES, tortaValidators);
+  const [searchQuery] = useGlobalSearch('');
+
+  const notify = (type, message) => {
+    setAlert({ type, message });
+    setSnackbarOpen(true);
+  };
+
+  const closeSnackbar = () => setSnackbarOpen(false);
+
+  const loadTortas = async () => {
     try {
       const data = await fetchTortas();
-      const sortedTortas = data.sort((a, b) =>
-        a.nombre_torta.localeCompare(b.nombre_torta)
-      );
-      setTortas(sortedTortas);
-    } catch (err) {
-      console.error('Error al obtener las tortas:', err);
+      const sorted = [...data].sort((a, b) => a.nombre_torta.localeCompare(b.nombre_torta));
+      setTortas(sorted);
+      return sorted;
+    } catch (error) {
+      console.error('Error al obtener las tortas:', error);
+      notify('error', 'No se pudieron cargar las tortas.');
+      return [];
     }
   };
 
-  // 2) Si venimos de Recetas con state.editTortaId → abrimos el modal de esa torta
   useEffect(() => {
-    if (location.state && location.state.editTortaId) {
-      const idParaEditar = location.state.editTortaId;
-      // Si la lista ya está cargada, buscamos la torta
-      const tortaEncontrada = tortas.find((t) => t.ID_TORTA === idParaEditar);
-      if (tortaEncontrada) {
-        setEditedTorta(tortaEncontrada);
-        setNewTorta({ ...tortaEncontrada, imagen: null });
-        setModalOpen(true);
-      } else {
-        // Si todavía no llegó la lista, la recargamos y luego intentamos de nuevo
-        (async () => {
-          const data = await fetchTortas();
-          const sorted = data.sort((a, b) => a.nombre_torta.localeCompare(b.nombre_torta));
-          setTortas(sorted);
-          const t2 = sorted.find((t) => t.ID_TORTA === idParaEditar);
-          if (t2) {
-            setEditedTorta(t2);
-            setNewTorta({ ...t2, imagen: null });
-            setModalOpen(true);
-          }
-        })();
-      }
-    }
-  }, [location.state, tortas]);
+    loadTortas();
+  }, []);
 
-  // 3) Abrir modal para “Agregar” o “Editar” manualmente
-  const handleOpenAddModal = (torta = null) => {
-    if (torta) {
-      setEditedTorta(torta);
-      setNewTorta({ ...torta, imagen: null });
+  const filteredTortas = useMemo(() => {
+    if (!searchQuery) return tortas;
+    const term = searchQuery.toLowerCase();
+    return tortas.filter(
+      (torta) =>
+        (torta.nombre_torta || '').toLowerCase().includes(term) ||
+        (torta.descripcion_torta || '').toLowerCase().includes(term)
+    );
+  }, [tortas, searchQuery]);
+
+  const isEditing = Boolean(currentTorta);
+  const marginValue = parsePercentValue(tortaForm.values.porcentaje_ganancia);
+  const costoReferencia = currentTorta?.costo_total ?? 0;
+  const precioActual = currentTorta
+    ? currentTorta.precio_lista ?? currentTorta.costo_total ?? 0
+    : null;
+  const previewPrecio =
+    isEditing && Number.isFinite(marginValue)
+      ? (currentTorta?.costo_total ?? 0) * (1 + marginValue / 100)
+      : null;
+
+  useEffect(() => {
+    let urlToRevoke = null;
+    const currentImage = tortaForm.values.imagen;
+    if (currentImage instanceof File) {
+      urlToRevoke = URL.createObjectURL(currentImage);
+      setImagePreview(urlToRevoke);
+    } else if (typeof currentImage === 'string' && currentImage) {
+      setImagePreview(buildImg(currentImage));
+    } else if (isEditing && currentTorta?.imagen) {
+      setImagePreview(buildImg(currentTorta.imagen));
     } else {
-      setEditedTorta(null);
-      setNewTorta({ nombre_torta: '', descripcion_torta: '', imagen: null });
+      setImagePreview(null);
     }
-    setError('');
-    setModalOpen(true);
+
+    return () => {
+      if (urlToRevoke) {
+        URL.revokeObjectURL(urlToRevoke);
+      }
+    };
+  }, [tortaForm.values.imagen, isEditing, currentTorta]);
+
+  const handleOpenModal = (torta = null) => {
+    if (torta) {
+      setCurrentTorta(torta);
+      tortaForm.resetForm({
+        nombre_torta: torta.nombre_torta ?? '',
+        descripcion_torta: torta.descripcion_torta ?? '',
+        porcentaje_ganancia: String(torta.porcentaje_ganancia ?? 0),
+        imagen: torta.imagen ?? null,
+      });
+    } else {
+      setCurrentTorta(null);
+      tortaForm.resetForm(TORTA_INITIAL_VALUES);
+    }
+    modalDialog.handleOpen();
   };
 
   const handleCloseModal = () => {
-    setModalOpen(false);
-    setEditedTorta(null);
-    setNewTorta({ nombre_torta: '', descripcion_torta: '', imagen: null });
-    setError('');
-    // Limpiar el state para que no se reabra solo si recargamos
+    modalDialog.handleClose();
+    setCurrentTorta(null);
+    tortaForm.resetForm(TORTA_INITIAL_VALUES);
     navigate('/tortas', { replace: true, state: {} });
   };
 
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
+  const handleMarginChange = (value) => {
+    tortaForm.setFieldValue('porcentaje_ganancia', sanitizePercentInput(value));
   };
 
-  const handleAddTorta = async () => {
-    if (!newTorta.nombre_torta || !newTorta.descripcion_torta) {
-      setError('Por favor complete todos los campos.');
+  const handleImageSelect = (file) => {
+    tortaForm.setFieldValue('imagen', file);
+  };
+
+  const handleImageRemove = () => {
+    tortaForm.setFieldValue('imagen', null);
+  };
+
+  const handleCreateTorta = async () => {
+    const { isValid } = tortaForm.validate();
+    if (!isValid) {
+      notify('error', 'Revisá los campos marcados antes de continuar.');
       return;
     }
+
     try {
-      await agregarTorta(newTorta);
-      await obtenerTortas();
-      setAlertMessage({ type: 'success', message: 'Torta agregada exitosamente' });
-      setSnackbarOpen(true);
+      await agregarTorta({
+        ...tortaForm.values,
+        porcentaje_ganancia: parsePercentValue(tortaForm.values.porcentaje_ganancia) ?? 0,
+      });
+      await loadTortas();
+      notify('success', 'Torta agregada exitosamente.');
       handleCloseModal();
-    } catch (err) {
-      console.error('Error al agregar la torta:', err);
-      setAlertMessage({ type: 'error', message: 'Error al agregar la torta' });
-      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error al agregar la torta:', error);
+      notify('error', 'Error al agregar la torta.');
     }
   };
 
-  const handleEditTorta = async () => {
-    if (!newTorta.nombre_torta || !newTorta.descripcion_torta) {
-      setError('Por favor complete todos los campos.');
+  const handleUpdateTorta = async () => {
+    const { isValid } = tortaForm.validate();
+    if (!isValid) {
+      notify('error', 'Revisá los campos marcados antes de continuar.');
       return;
     }
+    if (!currentTorta) return;
+
     try {
-      await editarTorta(newTorta);
-      await obtenerTortas();
-      setAlertMessage({ type: 'success', message: 'Torta editada exitosamente' });
-      setSnackbarOpen(true);
+      await editarTorta({
+        ...currentTorta,
+        ...tortaForm.values,
+        porcentaje_ganancia: parsePercentValue(tortaForm.values.porcentaje_ganancia) ?? 0,
+      });
+      await loadTortas();
+      notify('success', 'Torta editada exitosamente.');
       handleCloseModal();
-    } catch (err) {
-      console.error('Error al editar la torta:', err);
-      setAlertMessage({ type: 'error', message: 'Error al editar la torta' });
-      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error al editar la torta:', error);
+      notify('error', 'Error al editar la torta.');
     }
   };
 
-  const handleDeleteTorta = async (id) => {
+  const handleSubmitForm = () => {
+    if (isEditing) {
+      handleUpdateTorta();
+    } else {
+      handleCreateTorta();
+    }
+  };
+
+  const handleRequestDelete = (id) => {
+    setPendingDeleteId(id);
+    deleteDialog.handleOpen();
+  };
+
+  const handleConfirmDelete = async () => {
     try {
-      await borrarTorta(id);
-      await obtenerTortas();
-      setAlertMessage({ type: 'success', message: 'Torta eliminada exitosamente' });
-      setSnackbarOpen(true);
-    } catch (err) {
-      console.error('Error al eliminar la torta:', err);
-      setAlertMessage({ type: 'error', message: 'Error al eliminar la torta' });
-      setSnackbarOpen(true);
+      if (!pendingDeleteId) return;
+      const response = await borrarTorta(pendingDeleteId);
+      if (response.success) {
+        await loadTortas();
+        notify('success', 'Torta eliminada correctamente.');
+      } else {
+        const message =
+          typeof response.error === 'string'
+            ? response.error
+            : response.error?.message || 'Error al eliminar la torta.';
+        notify('error', message);
+      }
+    } catch (error) {
+      console.error('Error al eliminar la torta:', error);
+      notify('error', 'Error al eliminar la torta.');
+    } finally {
+      deleteDialog.handleClose();
+      setPendingDeleteId(null);
     }
   };
 
-  // 4) Botón “Ver Recetas” → navega a /recetas2 con el ID_TORTA para abrir el modal allí
-  const handleVerReceta = () => {
-    if (editedTorta && editedTorta.ID_TORTA) {
-      navigate('/recetas2', { state: { recetaTortaId: editedTorta.ID_TORTA } });
-      setModalOpen(false);
+  const handleViewRecipe = () => {
+    if (currentTorta?.ID_TORTA) {
+      navigate('/recetas', { state: { recetaTortaId: currentTorta.ID_TORTA } });
     }
   };
 
-  const filtrarTortas = (torta) => {
-    return (
-      torta.nombre_torta.toLowerCase().includes(filtro.toLowerCase()) ||
-      torta.descripcion_torta.toLowerCase().includes(filtro.toLowerCase())
-    );
-  };
+  useEffect(() => {
+    const stateId = location.state?.editTortaId;
+    if (!stateId) return;
+
+    const existing = tortas.find((t) => t.ID_TORTA === stateId);
+    if (existing) {
+      handleOpenModal(existing);
+    } else {
+      (async () => {
+        const data = await loadTortas();
+        const found = data.find((t) => t.ID_TORTA === stateId);
+        if (found) {
+          handleOpenModal(found);
+        }
+      })();
+    }
+  }, [location.state, tortas]);
 
   return (
-    <ThemeProvider theme={theme}>
       <Box
         sx={{
           width: '100%',
@@ -211,32 +293,14 @@ const TortasScreen = () => {
           mx: 'auto',
         }}
       >
-        {/* Barra de búsqueda y botón Agregar Tortas */}
         <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={8} md={9}>
-            <TextField
-              label="Buscar tortas"
-              variant="outlined"
-              fullWidth
-              size="small"
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={4} md={3}>
+          <Grid item xs={12} sm={4} md={3} sx={{ ml: 'auto' }}>
             <Button
               variant="contained"
               color="primary"
-              onClick={() => handleOpenAddModal()}
+              onClick={() => handleOpenModal()}
               fullWidth
-              startIcon={<AddIcon />}
+              startIcon={<AddRoundedIcon />}
               size={isMobile ? 'medium' : 'large'}
             >
               {isMobile ? 'Agregar' : 'Nueva Torta'}
@@ -244,219 +308,59 @@ const TortasScreen = () => {
           </Grid>
         </Grid>
 
-        {/* Tabla de tortas */}
-        <TableContainer
-          component={Paper}
-          elevation={3}
-          sx={{
-            width: '100%',
-            overflowX: 'auto',
-            border: '1px solid #ddd',
-            maxHeight: isMobile ? '70vh' : '75vh',
-          }}
-        >
-          <Table size={isMobile ? 'small' : 'medium'}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Nombre</TableCell>
-                {!isMobile && (
-                  <TableCell sx={{ fontWeight: 'bold' }}>Descripción</TableCell>
-                )}
-                <TableCell sx={{ fontWeight: 'bold' }}>Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {tortas &&
-                tortas.filter(filtrarTortas).map((torta) => (
-                  <TableRow key={torta.ID_TORTA} hover>
-                    <TableCell>{torta.nombre_torta}</TableCell>
-                    {!isMobile && <TableCell>{torta.descripcion_torta}</TableCell>}
-                    <TableCell>
-                      <IconButton
-                        onClick={() => handleOpenAddModal(torta)}
-                        color="primary"
-                        size="small"
-                      >
-                        <EditIcon fontSize={isMobile ? 'small' : 'medium'} />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => handleDeleteTorta(torta.ID_TORTA)}
-                        color="error"
-                        size="small"
-                      >
-                        <DeleteIcon fontSize={isMobile ? 'small' : 'medium'} />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <TortasTable
+          tortas={filteredTortas}
+          onEdit={handleOpenModal}
+          onDelete={handleRequestDelete}
+          isMobile={isMobile}
+        />
 
-        {/* Modal para agregar/editar torta */}
-        <Dialog
-          open={modalOpen}
+        <TortaFormDialog
+          open={modalDialog.open}
           onClose={handleCloseModal}
-          fullWidth
-          maxWidth="sm"
-          fullScreen={isMobile}
-        >
-          <DialogTitle
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              pb: 1,
-            }}
-          >
-            {editedTorta ? 'Editar Torta' : 'Agregar Torta'}
-            <IconButton onClick={handleCloseModal} size="small">
-              <CancelIcon />
-            </IconButton>
-          </DialogTitle>
+          onSubmit={handleSubmitForm}
+          onViewRecipe={handleViewRecipe}
+          isMobile={isMobile}
+          isEditing={isEditing}
+          form={tortaForm}
+          onMarginChange={handleMarginChange}
+          costoReferencia={costoReferencia}
+          precioActual={precioActual}
+          previewPrecio={previewPrecio}
+          previewImage={imagePreview}
+          onImageSelect={handleImageSelect}
+          onImageRemove={handleImageRemove}
+          title={isEditing ? 'Editar torta' : 'Agregar torta'}
+          submitLabel={isEditing ? 'Guardar cambios' : 'Agregar torta'}
+        />
 
-          <DialogContent dividers>
-            <Box sx={{ mt: 1 }}>
-              <TextField
-                label="Nombre"
-                name="nombre_torta"
-                value={newTorta.nombre_torta}
-                onChange={(e) =>
-                  setNewTorta({ ...newTorta, nombre_torta: e.target.value })
-                }
-                margin="normal"
-                fullWidth
-                size={isMobile ? 'small' : 'medium'}
-                sx={{ mb: 2 }}
-              />
+        <ConfirmDeleteDialog
+          open={deleteDialog.open}
+          title="Confirmar eliminación"
+          message="¿Estás seguro de que querés eliminar esta torta?"
+          onCancel={() => {
+            deleteDialog.handleClose();
+            setPendingDeleteId(null);
+          }}
+          onConfirm={handleConfirmDelete}
+        />
 
-              <TextField
-                label="Descripción"
-                name="descripcion_torta"
-                value={newTorta.descripcion_torta}
-                onChange={(e) =>
-                  setNewTorta({ ...newTorta, descripcion_torta: e.target.value })
-                }
-                margin="normal"
-                fullWidth
-                multiline
-                rows={isMobile ? 3 : 4}
-                size={isMobile ? 'small' : 'medium'}
-                sx={{ mb: 2 }}
-              />
-
-              <Box sx={{ mb: 2 }}>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<ImageIcon />}
-                  fullWidth={isMobile}
-                  size={isMobile ? 'small' : 'medium'}
-                >
-                  Subir Imagen
-                  <input
-                    type="file"
-                    name="imagen"
-                    hidden
-                    onChange={(e) =>
-                      setNewTorta({ ...newTorta, imagen: e.target.files[0] })
-                    }
-                  />
-                </Button>
-
-                {newTorta.imagen && (
-                  <Box
-                    sx={{
-                      mt: 2,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Avatar
-                      src={
-                        editedTorta && !newTorta.imagen.name
-                          ? `http://149.50.131.253/uploads/${newTorta.imagen}`
-                          : URL.createObjectURL(newTorta.imagen)
-                      }
-                      variant="rounded"
-                      sx={{
-                        width: isMobile ? 150 : 200,
-                        height: isMobile ? 150 : 200,
-                        mb: 1,
-                      }}
-                    />
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={() =>
-                        setNewTorta({ ...newTorta, imagen: null })
-                      }
-                      size={isMobile ? 'small' : 'medium'}
-                      startIcon={<DeleteIcon />}
-                    >
-                      Eliminar
-                    </Button>
-                  </Box>
-                )}
-              </Box>
-
-              {error && (
-                <Typography color="error" sx={{ mt: 1, textAlign: 'center' }}>
-                  {error}
-                </Typography>
-              )}
-            </Box>
-          </DialogContent>
-
-          <DialogActions
-            sx={{ p: 2, justifyContent: 'space-between' }}
-          >
-            {/* Botón “Ver Recetas” */}
-            {editedTorta && (
-              <Button
-                onClick={handleVerReceta}
-                color="secondary"
-                size={isMobile ? 'small' : 'medium'}
-              >
-                Ver Receta
-              </Button>
-            )}
-
-            <Box>
-              <Button
-                onClick={handleCloseModal}
-                size={isMobile ? 'small' : 'medium'}
-                sx={{ mr: 1 }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={editedTorta ? handleEditTorta : handleAddTorta}
-                variant="contained"
-                color="primary"
-                size={isMobile ? 'small' : 'medium'}
-              >
-                {editedTorta ? 'Guardar Cambios' : 'Agregar Torta'}
-              </Button>
-            </Box>
-          </DialogActions>
-        </Dialog>
         <Snackbar
           open={snackbarOpen}
           autoHideDuration={6000}
-          onClose={handleSnackbarClose}
+          onClose={closeSnackbar}
           anchorOrigin={{
             vertical: isMobile ? 'bottom' : 'top',
-            horizontal: 'center'
+            horizontal: 'center',
           }}
         >
-          <Alert onClose={handleSnackbarClose} severity={alertMessage?.type} sx={{ width: '100%' }}>
-            {alertMessage?.message}
-          </Alert>
+          {alert ? (
+            <Alert onClose={closeSnackbar} severity={alert.type} sx={{ width: '100%' }}>
+              {alert.message}
+            </Alert>
+          ) : null}
         </Snackbar>
       </Box>
-    </ThemeProvider>
   );
 };
 

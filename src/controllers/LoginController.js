@@ -1,6 +1,5 @@
-import axios from 'axios';
+﻿import api from '../components/AxiosConfig';
 
-const baseUrl = 'http://149.50.131.253/api';
 let authToken = null;
 const getToken = () => authToken || localStorage.getItem('token');
 
@@ -10,11 +9,7 @@ export const sendAuthenticatedRequest = async (url) => {
     if (!token) {
       throw new Error('No se ha obtenido un token de autenticación');
     }
-    const response = await axios.get(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await api.get(url);
     return response.data;
   } catch (error) {
     console.error('Error en sendAuthenticatedRequest:', error);
@@ -24,38 +19,60 @@ export const sendAuthenticatedRequest = async (url) => {
 
 const storeToken = (token) => {
   authToken = token;
+  try {
+    localStorage.setItem('token', token);
+  } catch (_) {
+    // ignore storage errors (e.g., SSR)
+  }
+};
+
+const storeUserInfo = (user) => {
+  try {
+    if (user) {
+      const normalized = {
+        ...user,
+        name: user.name || user.nombre || null,
+        role: user.role || user.rol || 'Administrador',
+      };
+      localStorage.setItem('userInfo', JSON.stringify(normalized));
+    } else {
+      localStorage.removeItem('userInfo');
+    }
+  } catch (_) {
+    // ignore storage errors
+  }
 };
 
 export const LoginController = {
-    loginUser: async (email, contrasena) => {
-        try {
-            const response = await axios.post(`${baseUrl}/login`, { email, contrasena });
+  loginUser: async (email, contrasena) => {
+    try {
+      const { data } = await api.post('/users/login', { email, contrasena });
+      const { token, user } = data || {};
 
-            if (!response.data.token) {
-                throw new Error('No se recibió token en la respuesta');
-            }
+      if (!token) {
+        throw new Error('No se recibió token en la respuesta');
+      }
 
-            const token = response.data.token;
-            storeToken(token);
-            return token;
-        } catch (error) {
-            console.error('Error en loginUser:', error);
-            throw new Error('Credenciales inválidas');
-        }
-    },
-
-    getToken: () => getToken(),
-
-    afterLogin: async (email, contrasena, action) => {
-        try {
-            await LoginController.loginUser(email, contrasena);
-            const result = await action();
-            return result;
-        } catch (error) {
-            console.error('Error en afterLogin:', error);
-            throw error;
-        }
+      storeToken(token);
+      storeUserInfo(user ?? null);
+      return { token, user: user ?? null };
+    } catch (error) {
+      console.error('Error en loginUser:', error);
+      const serverErrors = error?.response?.data?.errors;
+      const details = Array.isArray(serverErrors)
+        ? serverErrors.map((e) => e?.msg || e?.message).filter(Boolean).join('. ')
+        : null;
+      const message =
+        details ||
+        error?.response?.data?.error ||
+        error?.userMessage ||
+        error?.message ||
+        'Error al autenticar';
+      throw new Error(message);
     }
+  },
+
+  getToken: () => getToken(),
 };
 
 export default LoginController;

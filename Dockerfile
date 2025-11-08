@@ -1,23 +1,18 @@
-# Establece la imagen base
-FROM node:14-alpine
+# Build stage
+FROM node:18-alpine AS build
+WORKDIR /app
 
-# Establece el directorio de trabajo en el contenedor
-WORKDIR /frontend
+# Install dependencies with a clean reproducible lock
+COPY package*.json ./
+RUN npm ci
 
-# Copia los archivos necesarios
-COPY package.json .
-COPY package-lock.json .
-
-# Instala las dependencias
-RUN npm install
-
-# Copia el resto del código fuente
+# Build React app
 COPY . .
+RUN npm run build
 
-# Expone el puerto en el que el frontend está escuchando
-EXPOSE 19006
+# Runtime stage
+FROM nginx:1.27-alpine
+COPY --from=build /app/build /usr/share/nginx/html
 
-# Comando para iniciar el servidor web
-CMD [ "npx", "expo", "start", "--web" ]
-
-
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
